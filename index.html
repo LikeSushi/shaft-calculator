@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="scientific">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Report: Shaft Sizing & Analysis | FRA232 FIBO</title>
+    <!-- Google Fonts: Merriweather for Academic Titles, Inter & Prompt for Data -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX LaTeX Renderer CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="report-paper-container">
+        <!-- Academic Header Banner -->
+        <header class="scientific-header">
+            <div class="header-top">
+                <div class="academic-badge"><i class="fa-solid fa-graduation-cap"></i> KING MONGKUT'S UNIVERSITY OF TECHNOLOGY THONBURI</div>
+                <div class="doc-id">DOC-ID: FRA232-SHAFT-2026</div>
+            </div>
+            <h1 class="paper-title">Mechanical Shaft Sizing & Stress Analysis Studio</h1>
+            <div class="paper-meta">
+                <span><i class="fa-solid fa-microscope"></i> Methodology: ASME & Modified Goodman Criteria</span>
+                <span><i class="fa-solid fa-building-columns"></i> Field Robotics Institute (FIBO)</span>
+            </div>
+
+            <div class="preset-toolbar">
+                <span class="toolbar-label"><i class="fa-solid fa-bookmark"></i> Standard Test Cases:</span>
+                <button class="btn-scientific active" id="btnPresetTable">โจทย์ตารางอาจารย์ (150W)</button>
+                <button class="btn-scientific" id="btnPresetEx1">ตัวอย่างที่ 9.1 (ASME)</button>
+                <button class="btn-scientific" id="btnPresetEx4">ตัวอย่างที่ 9.4 (Critical Speed)</button>
+            </div>
+        </header>
+
+        <!-- Main Layout Grid -->
+        <main class="scientific-grid">
+            <!-- Left Input Column -->
+            <section class="paper-card input-section">
+                <div class="card-title">
+                    <i class="fa-solid fa-sliders"></i> I. Input Parameters & Design Conditions
+                </div>
+
+                <!-- Power & Motion -->
+                <fieldset class="paper-fieldset">
+                    <legend><i class="fa-solid fa-bolt"></i> Power & Operating Speed</legend>
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="powerW">Motor Power (P)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="powerW" value="150" step="any">
+                                <span class="unit-tag">W</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="rpm">Rotational Speed (N)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="rpm" value="60" step="any">
+                                <span class="unit-tag">RPM</span>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Loads & Dimensions -->
+                <fieldset class="paper-fieldset">
+                    <legend><i class="fa-solid fa-arrows-up-down-left-right"></i> Applied Loads & Dimensions</legend>
+                    <div class="form-row-2 mb-2">
+                        <div class="field-group">
+                            <label for="bendingMoment">Bending Moment (M)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="bendingMoment" value="20" step="any">
+                                <span class="unit-tag">N-m</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="shaftLength">Shaft Length (L)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="shaftLength" value="100" step="any">
+                                <span class="unit-tag">mm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="axialForce">Axial Force (F)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="axialForce" value="0" step="any">
+                                <span class="unit-tag">N</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="forceType">Force Direction</label>
+                            <select id="forceType">
+                                <option value="compressive" selected>Compressive (แรงอัด)</option>
+                                <option value="tensile">Tensile (แรงดึง)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field-group mt-2">
+                        <label for="endCondition">Bearing Support Boundary Condition</label>
+                        <select id="endCondition">
+                            <option value="SS" selected>Simply Supported (SS: n = 1.00)</option>
+                            <option value="CC">Clamped - Clamped (CC: n = 2.25)</option>
+                            <option value="SC">Simply Supported - Clamped (SC: n = 1.60)</option>
+                            <option value="CF">Clamped - Free (CF: n = 0.25)</option>
+                        </select>
+                    </div>
+                </fieldset>
+
+                <!-- Stress Concentration -->
+                <fieldset class="paper-fieldset">
+                    <legend><i class="fa-solid fa-bullseye"></i> Geometric Stress Concentration (K<sub>t</sub>, K<sub>ts</sub>)</legend>
+                    <div class="field-group mb-2">
+                        <label for="scPreset">Notch Geometry Preset</label>
+                        <select id="scPreset">
+                            <option value="KEYWAY_PROFILE" selected>Profile Keyway (Kt = 2.1, Kts = 1.8)</option>
+                            <option value="SHOULDER_FILLET">Bearing Shoulder Fillet (Kt = 1.7, Kts = 1.5)</option>
+                            <option value="SMOOTH">Smooth Shaft / No Notch (Kt = 1.0, Kts = 1.0)</option>
+                            <option value="SHARP_NOTCH">Sharp Radius Notch (Kt = 2.5, Kts = 2.0)</option>
+                            <option value="CUSTOM">Custom Parameters</option>
+                        </select>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="ktValue">Bending K<sub>t</sub></label>
+                            <input type="number" id="ktValue" value="2.1" step="0.1">
+                        </div>
+                        <div class="field-group">
+                            <label for="ktsValue">Torsion K<sub>ts</sub></label>
+                            <input type="number" id="ktsValue" value="1.8" step="0.1">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- Material Properties -->
+                <fieldset class="paper-fieldset">
+                    <legend><i class="fa-solid fa-cube"></i> Material Grade & ASME Standard</legend>
+                    <div class="field-group mb-2">
+                        <label for="materialPreset">Material Standard Grade</label>
+                        <select id="materialPreset">
+                            <option value="SS400" selected>SS400 / Structural Steel (Sy=250, Sut=400 MPa)</option>
+                            <option value="AISI1020">AISI 1020 Cold Drawn (Sy=290, Sut=380 MPa)</option>
+                            <option value="AISI1045">AISI 1045 Cold Drawn (Sy=310, Sut=570 MPa)</option>
+                            <option value="AISI4140">AISI 4140 Alloy Steel (Sy=415, Sut=655 MPa)</option>
+                            <option value="CUSTOM">Custom Material Properties</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row-2 mb-2">
+                        <div class="field-group">
+                            <label for="yieldStrength">Yield Strength (S<sub>y</sub>)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="yieldStrength" value="250" step="any">
+                                <span class="unit-tag">MPa</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="tensileStrength">Tensile Strength (S<sub>ut</sub>)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="tensileStrength" value="400" step="any">
+                                <span class="unit-tag">MPa</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row-2 mb-2">
+                        <div class="field-group">
+                            <label for="fos">Target FOS (n)</label>
+                            <input type="number" id="fos" value="2.0" step="0.1">
+                        </div>
+                        <div class="field-group">
+                            <label for="hasKeyway">Keyway Notch</label>
+                            <select id="hasKeyway">
+                                <option value="true" selected>With Keyway (มีร่องลิ่ม)</option>
+                                <option value="false">No Keyway (ไม่มีร่องลิ่ม)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field-group">
+                        <label for="loadType">ASME Loading Type (Table 9.2)</label>
+                        <select id="loadType">
+                            <option value="steady" selected>Rotating - Steady Load (Cm=1.5, Ct=1.0)</option>
+                            <option value="light_shock">Rotating - Light Shock (Cm=1.75, Ct=1.25)</option>
+                            <option value="heavy_shock">Rotating - Heavy Shock (Cm=2.5, Ct=2.25)</option>
+                            <option value="stat_steady">Stationary - Steady Load (Cm=1.0, Ct=1.0)</option>
+                        </select>
+                    </div>
+                </fieldset>
+            </section>
+
+            <!-- Right Results Column -->
+            <section class="paper-card output-section">
+                <div class="card-title">
+                    <i class="fa-solid fa-square-poll-vertical"></i> II. Scientific Analysis Results
+                    <span id="verdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> DESIGN SAFE</span>
+                </div>
+
+                <!-- Academic Data Table -->
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Equation / Method</th>
+                            <th>Calculated Value</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="highlight-row">
+                            <td><strong>Recommended ISO Size</strong></td>
+                            <td>ISO/R 775-1969 Table 9.1</td>
+                            <td><strong id="resIsoDia" class="primary-val">14 mm</strong></td>
+                            <td><span class="status-badge pass">ISO Standard</span></td>
+                        </tr>
+                        <tr>
+                            <td>ASME Calculated Diameter</td>
+                            <td><span id="eqAsme">\( d^3 = \frac{16}{\pi \tau_d} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d}{8} + C_m M\right)^2} \)</span></td>
+                            <td id="resCalcDia">13.64 mm</td>
+                            <td>Calculated Min</td>
+                        </tr>
+                        <tr>
+                            <td>Transmitted Torque (T)</td>
+                            <td><span id="eqTorque">\( T = \frac{P}{\omega} = \frac{P \cdot 60}{2\pi N} \)</span></td>
+                            <td id="resTorque">23.87 N-m</td>
+                            <td id="resTorqueNmm">23,873 N-mm</td>
+                        </tr>
+                        <tr>
+                            <td>Twist Angle (&theta;)</td>
+                            <td><span id="eqTwist">\( \theta = \frac{584 \cdot T \cdot L}{G \cdot d^4} \)</span></td>
+                            <td id="resTwistDeg">0.459&deg;</td>
+                            <td id="resTwistPerM">4.59 deg/m</td>
+                        </tr>
+                        <tr>
+                            <td>Critical Speed (n<sub>c</sub>)</td>
+                            <td><span id="eqCritical">\( n_c = 945 \sqrt{\frac{\sum W_i y_i}{\sum W_i y_i^2}} \)</span></td>
+                            <td id="resCriticalSpeed">4,056 RPM</td>
+                            <td id="resOperatingCheck">N = 60 RPM (Safe)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- LaTeX Governing Equations Panel -->
+                <div class="latex-panel">
+                    <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Engineering Equations (LaTeX Rendered)</div>
+                    <div class="latex-grid">
+                        <div class="latex-box">
+                            <span class="latex-label">1. ASME Sizing Equation (Full Form)</span>
+                            <div class="latex-math" id="latexAsme">$$d^3 = \frac{16}{\pi \tau_d (1 - K^4)} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d (1+K^2)}{8} + C_m M\right)^2}$$</div>
+                        </div>
+                        <div class="latex-box">
+                            <span class="latex-label">2. Modified Goodman Fatigue Criteria</span>
+                            <div class="latex-math" id="latexGoodman">$$\frac{1}{n_{goodman}} = \frac{\sigma'_a}{S_e} + \frac{\sigma'_m}{S_{ut}}$$</div>
+                        </div>
+                        <div class="latex-box">
+                            <span class="latex-label">3. Von Mises Maximum Stress</span>
+                            <div class="latex-math" id="latexVonMises">$$\sigma'_{max} = \sqrt{(\sigma'_a)^2 + (\sigma'_m)^2} \quad \Rightarrow \quad n_{yield} = \frac{S_y}{\sigma'_{max}}$$</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Safety Factors Summary Table -->
+                <div class="section-subtitle"><i class="fa-solid fa-shield-halved"></i> Safety Factors & Buckling Evaluation</div>
+                <table class="report-table compact">
+                    <thead>
+                        <tr>
+                            <th>Evaluation Criterion</th>
+                            <th>Allowable / Threshold</th>
+                            <th>Calculated Factor</th>
+                            <th>Evaluation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ASME Allowable Shear (&tau;<sub>d</sub>)</td>
+                            <td>Standard Keyway Rule</td>
+                            <td id="resTauD">41.0 MPa</td>
+                            <td>Allowable Shear</td>
+                        </tr>
+                        <tr>
+                            <td>Buckling Factor (&alpha;)</td>
+                            <td>Slenderness Ratio \( L/k = 4L/d \)</td>
+                            <td id="resAlpha">1.00</td>
+                            <td>Slenderness Check</td>
+                        </tr>
+                        <tr>
+                            <td>Von Mises Static Yield FOS</td>
+                            <td>\( n_{yield} = \frac{S_y}{\sigma'_{max}} \)</td>
+                            <td id="resYieldFos">2.34</td>
+                            <td>Yield Safety</td>
+                        </tr>
+                        <tr>
+                            <td>Modified Goodman Fatigue FOS</td>
+                            <td>\( \frac{1}{n} = \frac{\sigma'_a}{S_e} + \frac{\sigma'_m}{S_{ut}} \)</td>
+                            <td id="resGoodmanFos">1.61</td>
+                            <td>Fatigue Safety</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Academic Advice Banner -->
+                <div class="scientific-advice" id="adviceBox">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <span id="adviceText">เพลาขนาด 14 mm ผ่านเกณฑ์ Static Yield (FOS=2.34) แต่หากต้องการ Goodman Fatigue FOS &ge; 2.0 แนะนำให้เลือกขนาดมาตรฐาน 16 mm</span>
+                </div>
+
+                <!-- 2D Shaft Diagram -->
+                <div class="diagram-box">
+                    <div class="diagram-caption"><i class="fa-solid fa-pen-ruler"></i> Figure 1: 2D Shaft Geometry & Force Vector Diagram</div>
+                    <div class="canvas-paper">
+                        <canvas id="shaftCanvas" width="600" height="220"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

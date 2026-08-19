@@ -1,0 +1,399 @@
+/* ==========================================================================
+   Scientific Report & Academic Paper Theme (Clean White & High Legibility)
+   ========================================================================== */
+
+:root {
+    --bg-page: #f8fafc;
+    --paper-bg: #ffffff;
+    --paper-border: #e2e8f0;
+    --paper-border-dark: #cbd5e1;
+    
+    --text-main: #0f172a;
+    --text-sub: #334155;
+    --text-muted: #64748b;
+    
+    --academic-navy: #1e3a8a;
+    --academic-blue: #0284c7;
+    --academic-accent: #0f766e;
+    
+    --pass-green: #15803d;
+    --pass-bg: #f0fdf4;
+    --pass-border: #bbf7d0;
+    
+    --warn-amber: #b45309;
+    --warn-bg: #fffbeb;
+    --warn-border: #fde68a;
+    
+    --font-heading: 'Merriweather', Georgia, serif;
+    --font-body: 'Prompt', 'Inter', -apple-system, sans-serif;
+    --shadow-paper: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-page);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 24px;
+    line-height: 1.5;
+}
+
+.report-paper-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header Banner (Scientific Paper Title) */
+.scientific-header {
+    background: var(--paper-bg);
+    border: 1px solid var(--paper-border-dark);
+    border-radius: 12px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-paper);
+    border-top: 5px solid var(--academic-navy);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--paper-border);
+    padding-bottom: 6px;
+}
+
+.academic-badge {
+    color: var(--academic-navy);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.paper-title {
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--academic-navy);
+    margin-bottom: 6px;
+}
+
+.paper-meta {
+    display: flex;
+    gap: 20px;
+    font-size: 13px;
+    color: var(--text-sub);
+    margin-bottom: 16px;
+}
+
+.preset-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-page);
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--paper-border);
+}
+
+.toolbar-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--academic-navy);
+}
+
+.btn-scientific {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--paper-border-dark);
+    background: var(--paper-bg);
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-scientific:hover, .btn-scientific.active {
+    background: var(--academic-navy);
+    color: #ffffff;
+    border-color: var(--academic-navy);
+}
+
+/* Grid Layout */
+.scientific-grid {
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    gap: 24px;
+}
+
+@media (max-width: 1080px) {
+    .scientific-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.paper-card {
+    background: var(--paper-bg);
+    border: 1px solid var(--paper-border-dark);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-paper);
+}
+
+.card-title {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--academic-navy);
+    margin-bottom: 18px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--academic-navy);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Fieldset Cards */
+.paper-fieldset {
+    border: 1px solid var(--paper-border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: #fafafa;
+}
+
+.paper-fieldset legend {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--academic-navy);
+    padding: 0 8px;
+}
+
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.mb-2 { margin-bottom: 10px; }
+.mt-2 { margin-top: 10px; }
+
+.field-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+}
+
+.unit-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.unit-wrapper input {
+    padding-right: 48px;
+}
+
+.unit-wrapper .unit-tag {
+    position: absolute;
+    right: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+input[type="number"], select {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--paper-bg);
+    border: 1px solid var(--paper-border-dark);
+    border-radius: 6px;
+    color: var(--text-main);
+    font-family: var(--font-body);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+input[type="number"]:focus, select:focus {
+    border-color: var(--academic-blue);
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+/* Verdict Tags */
+.verdict-tag {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.verdict-pass {
+    background: var(--pass-bg);
+    color: var(--pass-green);
+    border: 1px solid var(--pass-border);
+}
+
+.verdict-warn {
+    background: var(--warn-bg);
+    color: var(--warn-amber);
+    border: 1px solid var(--warn-border);
+}
+
+/* Report Tables */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.report-table th, .report-table td {
+    padding: 10px 14px;
+    border: 1px solid var(--paper-border);
+    text-align: left;
+}
+
+.report-table th {
+    background: #f1f5f9;
+    color: var(--academic-navy);
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.report-table tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.report-table tr.highlight-row {
+    background: #eff6ff;
+}
+
+.primary-val {
+    font-size: 16px;
+    color: var(--academic-navy);
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.status-badge.pass {
+    background: var(--pass-bg);
+    color: var(--pass-green);
+    border: 1px solid var(--pass-border);
+}
+
+/* LaTeX Panel */
+.latex-panel {
+    border: 1px solid var(--paper-border-dark);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    background: #fdfdfd;
+}
+
+.latex-panel-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--academic-navy);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.latex-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.latex-box {
+    background: #ffffff;
+    border: 1px solid var(--paper-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+
+.latex-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.latex-math {
+    font-size: 14px;
+    color: var(--academic-navy);
+    overflow-x: auto;
+    padding: 4px 0;
+}
+
+.section-subtitle {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--academic-navy);
+    margin: 20px 0 10px 0;
+}
+
+.scientific-advice {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-amber);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+/* 2D Shaft Canvas Box */
+.diagram-box {
+    border: 1px solid var(--paper-border-dark);
+    border-radius: 8px;
+    padding: 14px;
+    background: #fafafa;
+}
+
+.diagram-caption {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 10px;
+}
+
+.canvas-paper {
+    background: #ffffff;
+    border: 1px solid var(--paper-border);
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+canvas {
+    max-width: 100%;
+    height: auto;
+}
