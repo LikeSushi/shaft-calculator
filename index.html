@@ -335,34 +335,66 @@
                     </div>
                 </div>
 
-                <!-- V-M DIAGRAM CALCULATOR SECTION (USER REQUEST 2) -->
+                <!-- ADVANCED V-M DIAGRAM CALCULATOR SECTION (MULTI-LOAD & CANTILEVER ENGINE) -->
                 <div class="vm-section-box">
                     <div class="card-title">
-                        <i class="fa-solid fa-chart-area"></i> III. Shear Force (V) & Bending Moment (M) Diagram Tool
+                        <i class="fa-solid fa-chart-area"></i> III. Advanced Multi-Load V-M Diagram Engine
                     </div>
 
-                    <div class="form-row-2 mb-3">
+                    <!-- Beam Support Configuration Selection -->
+                    <div class="field-group mb-3">
+                        <label for="vmBeamType">รูปแบบจุดรองรับเพลา/คาน (Beam Support Configuration)</label>
+                        <select id="vmBeamType">
+                            <option value="ss" selected>Simply Supported (คานพาดเรียบ 2 จุดยึดปลาย xa=0, xb=L)</option>
+                            <option value="cantilever">Cantilever Beam (คานยื่น - ยึดแน่นฝั่งซ้าย x=0, ฝั่งขวาปล่อยอิสระ)</option>
+                            <option value="overhanging">Overhanging Beam (คานพาดเรียบมีส่วนยื่นออกนอกบ่าลูกปืน)</option>
+                        </select>
+                    </div>
+
+                    <!-- Bearing positions for Overhanging Beam -->
+                    <div class="form-row-2 mb-3" id="overhangingPosRow" style="display: none;">
                         <div class="field-group">
-                            <label for="vmLoadN">Transverse Load (W)</label>
+                            <label for="vmXa">ตำแหน่งบ่ารองรับซ้าย (x<sub>A</sub>)</label>
                             <div class="unit-wrapper">
-                                <input type="number" id="vmLoadN" value="800" step="any">
-                                <span class="unit-tag">N</span>
+                                <input type="number" id="vmXa" value="10" step="any">
+                                <span class="unit-tag">mm</span>
                             </div>
                         </div>
                         <div class="field-group">
-                            <label for="vmPosA">Load Position (a from Left Bearing)</label>
+                            <label for="vmXb">ตำแหน่งบ่ารองรับขวา (x<sub>B</sub>)</label>
                             <div class="unit-wrapper">
-                                <input type="number" id="vmPosA" value="50" step="any">
+                                <input type="number" id="vmXb" value="90" step="any">
                                 <span class="unit-tag">mm</span>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Multi-Load Table -->
+                    <div class="section-subtitle"><i class="fa-solid fa-weight-hanging"></i> รายการแรงกระทำทางขวาง (Point Loads W<sub>i</sub>)</div>
+                    <table class="report-table compact mb-2" id="vmLoadsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>แรงกระทำ (Load W<sub>i</sub>)</th>
+                                <th>ตำแหน่งจากจุดซ้ายสุด (x<sub>i</sub>)</th>
+                                <th>การจัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vmLoadsTbody">
+                            <!-- Dynamic Load Rows -->
+                        </tbody>
+                    </table>
+
+                    <div class="mb-3">
+                        <button class="btn-scientific" id="btnAddLoadRow"><i class="fa-solid fa-plus"></i> เพิ่มแรงจุด (Add Point Load)</button>
+                    </div>
+
+                    <!-- Summary Results Table -->
                     <table class="report-table compact mb-3">
                         <thead>
                             <tr>
                                 <th>Left Reaction R<sub>A</sub></th>
-                                <th>Right Reaction R<sub>B</sub></th>
+                                <th>Right Reaction R<sub>B</sub> / Fixed Moment</th>
                                 <th>Peak Shear Force V<sub>max</sub></th>
                                 <th>Peak Bending Moment M<sub>max</sub></th>
                             </tr>

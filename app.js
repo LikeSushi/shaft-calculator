@@ -29,6 +29,11 @@ const ASME_LOAD_PRESETS = {
     stat_steady: { cm: 1.0, ct: 1.0 }
 };
 
+// State for Multi-Load V-M Diagram Engine
+let vmLoadsList = [
+    { w_n: 800, x_mm: 50 }
+];
+
 // DOM Elements
 const inputs = {
     powerW: document.getElementById('powerW'),
@@ -50,9 +55,10 @@ const inputs = {
     cmValue: document.getElementById('cmValue'),
     ctValue: document.getElementById('ctValue'),
 
-    // V-M Diagram Inputs
-    vmLoadN: document.getElementById('vmLoadN'),
-    vmPosA: document.getElementById('vmPosA')
+    // V-M Diagram Controls
+    vmBeamType: document.getElementById('vmBeamType'),
+    vmXa: document.getElementById('vmXa'),
+    vmXb: document.getElementById('vmXb')
 };
 
 const outputs = {
@@ -81,6 +87,9 @@ const outputs = {
 };
 
 const btnSyncMoment = document.getElementById('btnSyncMoment');
+const btnAddLoadRow = document.getElementById('btnAddLoadRow');
+const overhangingPosRow = document.getElementById('overhangingPosRow');
+const vmLoadsTbody = document.getElementById('vmLoadsTbody');
 
 const shaftCanvas = document.getElementById('shaftCanvas');
 const sfdCanvas = document.getElementById('sfdCanvas');
@@ -116,40 +125,148 @@ function calculateBucklingAlpha(d, L, isCompressive, endCondition, Sy, E) {
     }
 }
 
-// V-M Diagram Calculation Engine (User Request 2)
+// Multi-Load Dynamic Table Rendering
+function renderVmLoadsTable() {
+    vmLoadsTbody.innerHTML = '';
+    vmLoadsList.forEach((load, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>#${idx + 1}</td>
+            <td>
+                <div class="unit-wrapper">
+                    <input type="number" class="load-w-input" data-idx="${idx}" value="${load.w_n}" step="any">
+                    <span class="unit-tag">N</span>
+                </div>
+            </td>
+            <td>
+                <div class="unit-wrapper">
+                    <input type="number" class="load-x-input" data-idx="${idx}" value="${load.x_mm}" step="any">
+                    <span class="unit-tag">mm</span>
+                </div>
+            </td>
+            <td>
+                ${vmLoadsList.length > 1 ? `<button class="btn-scientific btn-remove-load" data-idx="${idx}" style="background:#fee2e2; border-color:#fca5a5; color:#dc2626;"><i class="fa-solid fa-trash"></i> ลบ</button>` : `<span class="unit-tag">หลัก</span>`}
+            </td>
+        `;
+        vmLoadsTbody.appendChild(tr);
+    });
+
+    // Event Listeners for Dynamic Load Inputs
+    document.querySelectorAll('.load-w-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            vmLoadsList[idx].w_n = parseFloat(e.target.value) || 0;
+            calculate();
+        });
+    });
+
+    document.querySelectorAll('.load-x-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            vmLoadsList[idx].x_mm = parseFloat(e.target.value) || 0;
+            calculate();
+        });
+    });
+
+    document.querySelectorAll('.btn-remove-load').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.getAttribute('data-idx'));
+            vmLoadsList.splice(idx, 1);
+            renderVmLoadsTable();
+            calculate();
+        });
+    });
+}
+
+btnAddLoadRow.addEventListener('click', () => {
+    const L_mm = parseFloat(inputs.shaftLength.value) || 100;
+    vmLoadsList.push({ w_n: 200, x_mm: Math.round(L_mm / 2) });
+    renderVmLoadsTable();
+    calculate();
+});
+
+inputs.vmBeamType.addEventListener('change', (e) => {
+    const val = e.target.value;
+    overhangingPosRow.style.display = val === 'overhanging' ? 'grid' : 'none';
+    calculate();
+});
+
+// Advanced Multi-Load V-M Diagram Engine
 function updateVmDiagram(L_mm) {
-    const W = Math.abs(parseFloat(inputs.vmLoadN.value) || 0);
-    let a = parseFloat(inputs.vmPosA.value) || 0;
-    if (a < 0) a = 0;
-    if (a > L_mm) a = L_mm;
+    const beamType = inputs.vmBeamType.value;
+    let xa = 0.0;
+    let xb = L_mm;
 
-    const b = L_mm - a;
+    if (beamType === 'overhanging') {
+        xa = parseFloat(inputs.vmXa.value) || 0.0;
+        xb = parseFloat(inputs.vmXb.value) || L_mm;
+    }
 
-    // Reactions
-    const Ra = L_mm > 0 ? (W * b) / L_mm : 0;
-    const Rb = L_mm > 0 ? (W * a) / L_mm : 0;
+    const total_w = vmLoadsList.reduce((sum, l) => sum + Math.abs(l.w_n), 0);
+    let Ra = 0, Rb = 0, maFixed = 0;
 
-    // Max Shear & Max Moment
-    const Vmax = Math.max(Math.abs(Ra), Math.abs(Rb));
-    const Mmax_nmm = Ra * a;
+    if (beamType === 'cantilever') {
+        Ra = total_w;
+        Rb = 0;
+        maFixed = vmLoadsList.reduce((sum, l) => sum + (Math.abs(l.w_n) * l.x_mm), 0);
+    } else {
+        const span = Math.max(xb - xa, 1.0);
+        Rb = vmLoadsList.reduce((sum, l) => sum + (Math.abs(l.w_n) * (l.x_mm - xa)), 0) / span;
+        Ra = total_w - Rb;
+    }
+
+    // Evaluate V(x) and M(x) across 200 points
+    const numPoints = 200;
+    const xPoints = [];
+    const vPoints = [];
+    const mPoints = [];
+
+    for (let i = 0; i <= numPoints; i++) {
+        const x = (i * L_mm) / numPoints;
+        xPoints.push(x);
+
+        let v_x = 0;
+        let m_x = 0;
+
+        if (beamType === 'cantilever') {
+            v_x = vmLoadsList.reduce((sum, l) => sum + (l.x_mm >= x ? Math.abs(l.w_n) : 0), 0);
+            m_x = -vmLoadsList.reduce((sum, l) => sum + (l.x_mm >= x ? Math.abs(l.w_n) * (l.x_mm - x) : 0), 0);
+        } else {
+            const term_ra = x >= xa ? Ra : 0;
+            const term_rb = x >= xb ? Rb : 0;
+            const term_w = vmLoadsList.reduce((sum, l) => sum + (l.x_mm <= x ? Math.abs(l.w_n) : 0), 0);
+            v_x = term_ra + term_rb - term_w;
+
+            const m_ra = Ra * Math.max(x - xa, 0);
+            const m_rb = Rb * Math.max(x - xb, 0);
+            const m_w = vmLoadsList.reduce((sum, l) => sum + (l.x_mm <= x ? Math.abs(l.w_n) * (x - l.x_mm) : 0), 0);
+            m_x = m_ra + m_rb - m_w;
+        }
+
+        vPoints.push(v_x);
+        mPoints.push(m_x);
+    }
+
+    const Vmax = Math.max(...vPoints.map(Math.abs), 0);
+    const Mmax_nmm = Math.max(...mPoints.map(Math.abs), 0);
     const Mmax_nm = Mmax_nmm / 1000.0;
 
     lastCalculatedMmaxNm = Mmax_nm;
 
     outputs.resVmRa.innerText = `${Ra.toFixed(1)} N`;
-    outputs.resVmRb.innerText = `${Rb.toFixed(1)} N`;
+    outputs.resVmRb.innerText = beamType === 'cantilever' ? `M_fixed = ${(maFixed/1000).toFixed(2)} N-m` : `${Rb.toFixed(1)} N`;
     outputs.resVmVmax.innerText = `${Vmax.toFixed(1)} N`;
     outputs.resVmMmaxNm.innerText = `${Mmax_nm.toFixed(2)} N-m`;
     outputs.resVmMmaxNmm.innerText = `${Math.round(Mmax_nmm).toLocaleString()} N-mm`;
     btnSyncMoment.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (${Mmax_nm.toFixed(2)} N-m) เข้าไปคำนวณเพลาหลักทันที`;
 
-    // Draw SFD and BMD Canvases
-    drawSFDDiagram(L_mm, a, Ra, Rb, Vmax);
-    drawBMDDiagram(L_mm, a, Mmax_nm, Mmax_nmm);
+    // Draw SFD & BMD Canvases
+    drawMultiLoadSFD(L_mm, xPoints, vPoints, Vmax, beamType, xa, xb);
+    drawMultiLoadBMD(L_mm, xPoints, mPoints, Mmax_nm, Mmax_nmm, beamType);
 }
 
-// Draw Shear Force Diagram V(x)
-function drawSFDDiagram(L, a, Ra, Rb, Vmax) {
+// Draw Multi-Point Shear Force Diagram V(x)
+function drawMultiLoadSFD(L, xPoints, vPoints, Vmax, beamType, xa, xb) {
     const width = sfdCanvas.width;
     const height = sfdCanvas.height;
     ctxSFD.clearRect(0, 0, width, height);
@@ -158,7 +275,6 @@ function drawSFDDiagram(L, a, Ra, Rb, Vmax) {
     const startX = 60;
     const endX = width - 60;
     const plotWidth = endX - startX;
-    const loadX = startX + (a / L) * plotWidth;
 
     // Zero Line
     ctxSFD.strokeStyle = '#94a3b8';
@@ -169,47 +285,44 @@ function drawSFDDiagram(L, a, Ra, Rb, Vmax) {
     ctxSFD.stroke();
     ctxSFD.setLineDash([]);
 
-    if (Vmax <= 0) return;
+    if (Vmax <= 0 || !vPoints.length) return;
 
     const maxH = height / 2 - 25;
-    const hRa = (Ra / Vmax) * maxH;
-    const hRb = (Rb / Vmax) * maxH;
 
-    // SFD Shape
     ctxSFD.fillStyle = 'rgba(2, 132, 199, 0.15)';
     ctxSFD.strokeStyle = '#0284c7';
     ctxSFD.lineWidth = 2;
 
     ctxSFD.beginPath();
     ctxSFD.moveTo(startX, centerY);
-    ctxSFD.lineTo(startX, centerY - hRa);
-    ctxSFD.lineTo(loadX, centerY - hRa);
-    ctxSFD.lineTo(loadX, centerY + hRb);
-    ctxSFD.lineTo(endX, centerY + hRb);
+
+    for (let i = 0; i < xPoints.length; i++) {
+        const px = startX + (xPoints[i] / L) * plotWidth;
+        const py = centerY - (vPoints[i] / Vmax) * maxH;
+        ctxSFD.lineTo(px, py);
+    }
+
     ctxSFD.lineTo(endX, centerY);
     ctxSFD.closePath();
     ctxSFD.fill();
     ctxSFD.stroke();
 
-    // Values Text
+    // Vmax Label
     ctxSFD.fillStyle = '#1e3a8a';
     ctxSFD.font = '600 11px Inter, sans-serif';
-    ctxSFD.fillText(`+V = ${Ra.toFixed(1)} N`, startX + 10, centerY - hRa - 6);
-    ctxSFD.fillStyle = '#dc2626';
-    ctxSFD.fillText(`-V = ${Rb.toFixed(1)} N`, loadX + 10, centerY + hRb + 14);
+    ctxSFD.fillText(`V_max = ${Vmax.toFixed(1)} N`, startX + 10, 18);
 }
 
-// Draw Bending Moment Diagram M(x)
-function drawBMDDiagram(L, a, MmaxNm, MmaxNmm) {
+// Draw Multi-Point Bending Moment Diagram M(x)
+function drawMultiLoadBMD(L, xPoints, mPoints, MmaxNm, MmaxNmm, beamType) {
     const width = bmdCanvas.width;
     const height = bmdCanvas.height;
     ctxBMD.clearRect(0, 0, width, height);
 
-    const centerY = height - 25;
+    const centerY = beamType === 'cantilever' ? 30 : height - 25;
     const startX = 60;
     const endX = width - 60;
     const plotWidth = endX - startX;
-    const loadX = startX + (a / L) * plotWidth;
 
     // Zero Line
     ctxBMD.strokeStyle = '#94a3b8';
@@ -220,18 +333,33 @@ function drawBMDDiagram(L, a, MmaxNm, MmaxNmm) {
     ctxBMD.stroke();
     ctxBMD.setLineDash([]);
 
-    if (MmaxNm <= 0) return;
+    if (MmaxNm <= 0 || !mPoints.length) return;
 
     const maxH = height - 55;
 
-    // BMD Shape
     ctxBMD.fillStyle = 'rgba(15, 118, 110, 0.15)';
     ctxBMD.strokeStyle = '#0f766e';
     ctxBMD.lineWidth = 2;
 
     ctxBMD.beginPath();
     ctxBMD.moveTo(startX, centerY);
-    ctxBMD.lineTo(loadX, centerY - maxH);
+
+    let peakPx = startX;
+    let peakPy = centerY;
+
+    for (let i = 0; i < xPoints.length; i++) {
+        const px = startX + (xPoints[i] / L) * plotWidth;
+        const ratio = Math.abs(mPoints[i]) / (MmaxNmm || 1);
+        const py = beamType === 'cantilever' ? centerY + ratio * maxH : centerY - ratio * maxH;
+
+        if (Math.abs(Math.abs(mPoints[i]) - MmaxNmm) < 1e-3) {
+            peakPx = px;
+            peakPy = py;
+        }
+
+        ctxBMD.lineTo(px, py);
+    }
+
     ctxBMD.lineTo(endX, centerY);
     ctxBMD.closePath();
     ctxBMD.fill();
@@ -241,7 +369,8 @@ function drawBMDDiagram(L, a, MmaxNm, MmaxNmm) {
     ctxBMD.fillStyle = '#0f766e';
     ctxBMD.font = '700 12px Inter, sans-serif';
     ctxBMD.textAlign = 'center';
-    ctxBMD.fillText(`M_max = ${MmaxNm.toFixed(2)} N-m`, loadX, centerY - maxH - 8);
+    const textY = beamType === 'cantilever' ? peakPy + 16 : peakPy - 8;
+    ctxBMD.fillText(`M_max = ${MmaxNm.toFixed(2)} N-m`, peakPx, textY);
 }
 
 // Calculation Engine
@@ -260,7 +389,7 @@ function calculate() {
     const targetFos = parseFloat(inputs.fos.value) || 2.0;
     const hasKeyway = inputs.hasKeyway.value === 'true';
 
-    // Custom Cm & Ct (User Request 1)
+    // Custom Cm & Ct
     const cm = parseFloat(inputs.cmValue.value) || 1.5;
     const ct = parseFloat(inputs.ctValue.value) || 1.0;
 
@@ -507,6 +636,8 @@ document.getElementById('btnPresetTable').addEventListener('click', () => {
     inputs.loadType.value = 'steady';
     inputs.cmValue.value = 1.5;
     inputs.ctValue.value = 1.0;
+    vmLoadsList = [{ w_n: 800, x_mm: 50 }];
+    renderVmLoadsTable();
     calculate();
 });
 
@@ -527,6 +658,8 @@ document.getElementById('btnPresetEx1').addEventListener('click', () => {
     inputs.loadType.value = 'steady';
     inputs.cmValue.value = 1.5;
     inputs.ctValue.value = 1.0;
+    vmLoadsList = [{ w_n: 8220, x_mm: 437.5 }];
+    renderVmLoadsTable();
     calculate();
 });
 
@@ -545,10 +678,12 @@ document.getElementById('btnPresetEx4').addEventListener('click', () => {
     inputs.tensileStrength.value = 400;
     inputs.cmValue.value = 1.5;
     inputs.ctValue.value = 1.0;
+    vmLoadsList = [{ w_n: 4, x_mm: 80 }];
+    renderVmLoadsTable();
     calculate();
 });
 
-// ASME Load Type Dropdown Event (User Request 1)
+// ASME Load Type Dropdown Event
 inputs.loadType.addEventListener('change', (e) => {
     const val = e.target.value;
     if (val !== 'CUSTOM' && ASME_LOAD_PRESETS[val]) {
@@ -594,8 +729,10 @@ Object.values(inputs).forEach(input => {
 
 // Initial Run with KaTeX rendering on load
 window.addEventListener('DOMContentLoaded', () => {
+    renderVmLoadsTable();
     calculate();
     renderKaTeXMath();
 });
 
+renderVmLoadsTable();
 calculate();

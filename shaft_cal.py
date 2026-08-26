@@ -70,44 +70,84 @@ class AdvancedMechanicalShaft:
         return alpha
 
     def calculate_vm_diagram(self, length_mm, load_n, position_a_mm):
-        """
-        คำนวณแผนภาพแรงเฉือน (V) และโมเมนต์ดัด (M) สำหรับเพลารับแรงจุด (Point Load) บนจุดรองรับสองฝั่ง
-        L: ความยาวเพลา (mm)
-        W: แรงกระทำทางขวาง (N)
-        a: ระยะแรงกระทำจากจุดยึดซ้าย (mm)
-        """
+        return self.calculate_multi_load_vm_diagram(
+            length_mm=length_mm,
+            loads=[{"w_n": load_n, "x_mm": position_a_mm}],
+            beam_type="ss"
+        )
+
+    def calculate_multi_load_vm_diagram(self, length_mm, loads, beam_type="ss", xa_mm=0.0, xb_mm=None):
         L = max(float(length_mm), 1.0)
-        W = float(load_n)
-        a = min(max(float(position_a_mm), 0.0), L)
-        b = L - a
+        xa = float(xa_mm)
+        xb = float(xb_mm) if xb_mm is not None else L
 
-        # แรงปฏิกิริยาที่จุดรองรับ A และ B
-        ra = (W * b) / L
-        rb = (W * a) / L
+        parsed_loads = []
+        for load in loads:
+            w = float(load.get("w_n", 0.0))
+            x = min(max(float(load.get("x_mm", 0.0)), 0.0), L)
+            if abs(w) > 0:
+                parsed_loads.append({"w_n": w, "x_mm": x})
 
-        # แรงเฉือนสูงสุด V_max (N) และโมเมนต์ดัดสูงสุด M_max (N-mm)
-        v_max = max(abs(ra), abs(rb))
-        m_max_nmm = ra * a  # หรือ rb * b
+        total_w = sum(l["w_n"] for l in parsed_loads)
+        ma_fixed = 0.0
+        ra, rb = 0.0, 0.0
+
+        if beam_type == "cantilever":
+            ra = total_w
+            rb = 0.0
+            ma_fixed = sum(l["w_n"] * l["x_mm"] for l in parsed_loads)
+        else:
+            span = max(xb - xa, 1.0)
+            rb = sum(l["w_n"] * (l["x_mm"] - xa) for l in parsed_loads) / span
+            ra = total_w - rb
+
+        num_points = 200
+        x_points = [ (i * L) / num_points for i in range(num_points + 1) ]
+        v_points = []
+        m_points = []
+
+        for x in x_points:
+            if beam_type == "cantilever":
+                v_x = sum(l["w_n"] for l in parsed_loads if l["x_mm"] >= x)
+                m_x = -sum(l["w_n"] * (l["x_mm"] - x) for l in parsed_loads if l["x_mm"] >= x)
+            else:
+                term_ra = ra if x >= xa else 0.0
+                term_rb = rb if x >= xb else 0.0
+                term_w = sum(l["w_n"] for l in parsed_loads if l["x_mm"] <= x)
+                v_x = term_ra + term_rb - term_w
+
+                m_ra = ra * max(x - xa, 0.0)
+                m_rb = rb * max(x - xb, 0.0)
+                m_w = sum(l["w_n"] * (x - l["x_mm"]) for l in parsed_loads if l["x_mm"] <= x)
+                m_x = m_ra + m_rb - m_w
+
+            v_points.append(v_x)
+            m_points.append(m_x)
+
+        v_max = max((abs(v) for v in v_points), default=0.0)
+        m_max_nmm = max((abs(m) for m in m_points), default=0.0)
         m_max_nm = m_max_nmm / 1000.0
 
         return {
             "L_mm": L,
-            "W_n": W,
-            "a_mm": a,
-            "b_mm": b,
+            "beam_type": beam_type,
+            "xa_mm": xa,
+            "xb_mm": xb,
+            "loads": parsed_loads,
             "ra_n": ra,
             "rb_n": rb,
+            "ma_fixed_nmm": ma_fixed,
             "v_max_n": v_max,
             "m_max_nmm": m_max_nmm,
-            "m_max_nm": m_max_nm
+            "m_max_nm": m_max_nm,
+            "x_points": x_points,
+            "v_points": v_points,
+            "m_points": m_points
         }
 
     def asme_shaft_design(self, torque_nmm, bending_moment_nmm, axial_force_n=0.0, length_mm=100.0, 
                           is_compressive=True, end_condition="SS", is_rotating=True, load_type="steady", 
                           has_keyway=True, use_material_properties=False, cm_custom=None, ct_custom=None):
-        """
-        คำนวณขนาดเพลาตามมาตรฐาน ASME (รองรับการกำหนด Cm, Ct เองได้อิสระ)
-        """
         if cm_custom is not None and ct_custom is not None:
             cm, ct = float(cm_custom), float(ct_custom)
         else:
