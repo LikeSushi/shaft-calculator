@@ -335,10 +335,18 @@
                     </div>
                 </div>
 
-                <!-- ADVANCED V-M DIAGRAM CALCULATOR SECTION (MULTI-LOAD & CANTILEVER ENGINE) -->
+                <!-- ADVANCED V-M DIAGRAM CALCULATOR SECTION (VECTOR FORCES & COORDINATE SYSTEM) -->
                 <div class="vm-section-box">
                     <div class="card-title">
-                        <i class="fa-solid fa-chart-area"></i> III. Advanced Multi-Load V-M Diagram Engine
+                        <i class="fa-solid fa-chart-area"></i> III. Advanced Vector V-M Diagram Engine & Statics Solver
+                    </div>
+
+                    <!-- 2D Coordinate System Legend Banner -->
+                    <div class="coord-banner mb-3">
+                        <span class="coord-tag"><i class="fa-solid fa-compass"></i> 2D Vector Sign Convention:</span>
+                        <span>\( X \to \) Shaft Axis (mm)</span> • 
+                        <span class="up-val"><i class="fa-solid fa-arrow-up"></i> \( +Y \) Upward Force (N)</span> • 
+                        <span class="down-val"><i class="fa-solid fa-arrow-down"></i> \( -Y \) Downward Force (N)</span>
                     </div>
 
                     <!-- Beam Support Configuration Selection -->
@@ -370,12 +378,13 @@
                     </div>
 
                     <!-- Multi-Load Table -->
-                    <div class="section-subtitle"><i class="fa-solid fa-weight-hanging"></i> รายการแรงกระทำทางขวาง (Point Loads W<sub>i</sub>)</div>
+                    <div class="section-subtitle"><i class="fa-solid fa-weight-hanging"></i> รายการแรงกระทำแบบเวกเตอร์ (Vector Point Loads W<sub>i</sub>)</div>
                     <table class="report-table compact mb-2" id="vmLoadsTable">
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>แรงกระทำ (Load W<sub>i</sub>)</th>
+                                <th>ทิศทางแรง (&plusmn;Y)</th>
+                                <th>ขนาดแรง (Load W<sub>i</sub>)</th>
                                 <th>ตำแหน่งจากจุดซ้ายสุด (x<sub>i</sub>)</th>
                                 <th>การจัดการ</th>
                             </tr>

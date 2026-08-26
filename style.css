@@ -249,6 +249,36 @@ input[type="number"]:focus, select:focus {
     box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
 }
 
+/* Coordinate System Legend Banner */
+.coord-banner {
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    color: #0369a1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.coord-tag {
+    font-weight: 700;
+    color: #0c4a6e;
+}
+
+.up-val {
+    color: #15803d;
+    font-weight: 600;
+}
+
+.down-val {
+    color: #dc2626;
+    font-weight: 600;
+}
+
 /* Verdict Tags */
 .verdict-tag {
     padding: 4px 12px;

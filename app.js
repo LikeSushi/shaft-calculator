@@ -31,7 +31,7 @@ const ASME_LOAD_PRESETS = {
 
 // State for Multi-Load V-M Diagram Engine
 let vmLoadsList = [
-    { w_n: 800, x_mm: 50 }
+    { w_n: 800, dir: 'downward', x_mm: 50 }
 ];
 
 // DOM Elements
@@ -133,6 +133,12 @@ function renderVmLoadsTable() {
         tr.innerHTML = `
             <td>#${idx + 1}</td>
             <td>
+                <select class="load-dir-select" data-idx="${idx}">
+                    <option value="downward" ${load.dir === 'downward' ? 'selected' : ''}>-Y ชี้ลง (↓)</option>
+                    <option value="upward" ${load.dir === 'upward' ? 'selected' : ''}>+Y ชี้ขึ้น (↑)</option>
+                </select>
+            </td>
+            <td>
                 <div class="unit-wrapper">
                     <input type="number" class="load-w-input" data-idx="${idx}" value="${load.w_n}" step="any">
                     <span class="unit-tag">N</span>
@@ -152,10 +158,18 @@ function renderVmLoadsTable() {
     });
 
     // Event Listeners for Dynamic Load Inputs
+    document.querySelectorAll('.load-dir-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            vmLoadsList[idx].dir = e.target.value;
+            calculate();
+        });
+    });
+
     document.querySelectorAll('.load-w-input').forEach(input => {
         input.addEventListener('input', (e) => {
             const idx = parseInt(e.target.getAttribute('data-idx'));
-            vmLoadsList[idx].w_n = parseFloat(e.target.value) || 0;
+            vmLoadsList[idx].w_n = Math.abs(parseFloat(e.target.value) || 0);
             calculate();
         });
     });
@@ -180,7 +194,7 @@ function renderVmLoadsTable() {
 
 btnAddLoadRow.addEventListener('click', () => {
     const L_mm = parseFloat(inputs.shaftLength.value) || 100;
-    vmLoadsList.push({ w_n: 200, x_mm: Math.round(L_mm / 2) });
+    vmLoadsList.push({ w_n: 200, dir: 'downward', x_mm: Math.round(L_mm / 2) });
     renderVmLoadsTable();
     calculate();
 });
@@ -191,7 +205,7 @@ inputs.vmBeamType.addEventListener('change', (e) => {
     calculate();
 });
 
-// Advanced Multi-Load V-M Diagram Engine
+// Advanced Multi-Load Vector V-M Diagram Engine
 function updateVmDiagram(L_mm) {
     const beamType = inputs.vmBeamType.value;
     let xa = 0.0;
@@ -202,17 +216,23 @@ function updateVmDiagram(L_mm) {
         xb = parseFloat(inputs.vmXb.value) || L_mm;
     }
 
-    const total_w = vmLoadsList.reduce((sum, l) => sum + Math.abs(l.w_n), 0);
+    // Signed loads vector array (+Y upward, -Y downward)
+    const signedLoads = vmLoadsList.map(l => ({
+        w_n: l.dir === 'upward' ? Math.abs(l.w_n) : -Math.abs(l.w_n),
+        x_mm: l.x_mm
+    }));
+
+    const total_w = signedLoads.reduce((sum, l) => sum + l.w_n, 0);
     let Ra = 0, Rb = 0, maFixed = 0;
 
     if (beamType === 'cantilever') {
-        Ra = total_w;
+        Ra = -total_w;
         Rb = 0;
-        maFixed = vmLoadsList.reduce((sum, l) => sum + (Math.abs(l.w_n) * l.x_mm), 0);
+        maFixed = signedLoads.reduce((sum, l) => sum + (l.w_n * (l.x_mm - xa)), 0);
     } else {
         const span = Math.max(xb - xa, 1.0);
-        Rb = vmLoadsList.reduce((sum, l) => sum + (Math.abs(l.w_n) * (l.x_mm - xa)), 0) / span;
-        Ra = total_w - Rb;
+        Rb = -signedLoads.reduce((sum, l) => sum + (l.w_n * (l.x_mm - xa)), 0) / span;
+        Ra = -total_w - Rb;
     }
 
     // Evaluate V(x) and M(x) across 200 points
@@ -225,23 +245,16 @@ function updateVmDiagram(L_mm) {
         const x = (i * L_mm) / numPoints;
         xPoints.push(x);
 
-        let v_x = 0;
-        let m_x = 0;
+        const term_ra = x >= xa ? Ra : 0;
+        const term_rb = x >= xb ? Rb : 0;
+        const term_w = signedLoads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n : 0), 0);
+        const v_x = term_ra + term_rb + term_w;
 
-        if (beamType === 'cantilever') {
-            v_x = vmLoadsList.reduce((sum, l) => sum + (l.x_mm >= x ? Math.abs(l.w_n) : 0), 0);
-            m_x = -vmLoadsList.reduce((sum, l) => sum + (l.x_mm >= x ? Math.abs(l.w_n) * (l.x_mm - x) : 0), 0);
-        } else {
-            const term_ra = x >= xa ? Ra : 0;
-            const term_rb = x >= xb ? Rb : 0;
-            const term_w = vmLoadsList.reduce((sum, l) => sum + (l.x_mm <= x ? Math.abs(l.w_n) : 0), 0);
-            v_x = term_ra + term_rb - term_w;
-
-            const m_ra = Ra * Math.max(x - xa, 0);
-            const m_rb = Rb * Math.max(x - xb, 0);
-            const m_w = vmLoadsList.reduce((sum, l) => sum + (l.x_mm <= x ? Math.abs(l.w_n) * (x - l.x_mm) : 0), 0);
-            m_x = m_ra + m_rb - m_w;
-        }
+        const m_fixed_term = x >= xa ? maFixed : 0;
+        const m_ra = Ra * Math.max(x - xa, 0);
+        const m_rb = Rb * Math.max(x - xb, 0);
+        const m_w = signedLoads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n * (x - l.x_mm) : 0), 0);
+        const m_x = m_fixed_term + m_ra + m_rb + m_w;
 
         vPoints.push(v_x);
         mPoints.push(m_x);
@@ -253,8 +266,8 @@ function updateVmDiagram(L_mm) {
 
     lastCalculatedMmaxNm = Mmax_nm;
 
-    outputs.resVmRa.innerText = `${Ra.toFixed(1)} N`;
-    outputs.resVmRb.innerText = beamType === 'cantilever' ? `M_fixed = ${(maFixed/1000).toFixed(2)} N-m` : `${Rb.toFixed(1)} N`;
+    outputs.resVmRa.innerText = `${Ra > 0 ? '+' : ''}${Ra.toFixed(1)} N (${Ra >= 0 ? '↑' : '↓'})`;
+    outputs.resVmRb.innerText = beamType === 'cantilever' ? `M_fixed = ${(maFixed/1000).toFixed(2)} N-m` : `${Rb > 0 ? '+' : ''}${Rb.toFixed(1)} N (${Rb >= 0 ? '↑' : '↓'})`;
     outputs.resVmVmax.innerText = `${Vmax.toFixed(1)} N`;
     outputs.resVmMmaxNm.innerText = `${Mmax_nm.toFixed(2)} N-m`;
     outputs.resVmMmaxNmm.innerText = `${Math.round(Mmax_nmm).toLocaleString()} N-mm`;
@@ -319,7 +332,7 @@ function drawMultiLoadBMD(L, xPoints, mPoints, MmaxNm, MmaxNmm, beamType) {
     const height = bmdCanvas.height;
     ctxBMD.clearRect(0, 0, width, height);
 
-    const centerY = beamType === 'cantilever' ? 30 : height - 25;
+    const centerY = height / 2;
     const startX = 60;
     const endX = width - 60;
     const plotWidth = endX - startX;
@@ -335,7 +348,7 @@ function drawMultiLoadBMD(L, xPoints, mPoints, MmaxNm, MmaxNmm, beamType) {
 
     if (MmaxNm <= 0 || !mPoints.length) return;
 
-    const maxH = height - 55;
+    const maxH = height / 2 - 25;
 
     ctxBMD.fillStyle = 'rgba(15, 118, 110, 0.15)';
     ctxBMD.strokeStyle = '#0f766e';
@@ -349,8 +362,7 @@ function drawMultiLoadBMD(L, xPoints, mPoints, MmaxNm, MmaxNmm, beamType) {
 
     for (let i = 0; i < xPoints.length; i++) {
         const px = startX + (xPoints[i] / L) * plotWidth;
-        const ratio = Math.abs(mPoints[i]) / (MmaxNmm || 1);
-        const py = beamType === 'cantilever' ? centerY + ratio * maxH : centerY - ratio * maxH;
+        const py = centerY - (mPoints[i] / (MmaxNmm || 1)) * maxH;
 
         if (Math.abs(Math.abs(mPoints[i]) - MmaxNmm) < 1e-3) {
             peakPx = px;
@@ -369,7 +381,7 @@ function drawMultiLoadBMD(L, xPoints, mPoints, MmaxNm, MmaxNmm, beamType) {
     ctxBMD.fillStyle = '#0f766e';
     ctxBMD.font = '700 12px Inter, sans-serif';
     ctxBMD.textAlign = 'center';
-    const textY = beamType === 'cantilever' ? peakPy + 16 : peakPy - 8;
+    const textY = peakPy > centerY ? peakPy + 16 : peakPy - 8;
     ctxBMD.fillText(`M_max = ${MmaxNm.toFixed(2)} N-m`, peakPx, textY);
 }
 
@@ -636,7 +648,7 @@ document.getElementById('btnPresetTable').addEventListener('click', () => {
     inputs.loadType.value = 'steady';
     inputs.cmValue.value = 1.5;
     inputs.ctValue.value = 1.0;
-    vmLoadsList = [{ w_n: 800, x_mm: 50 }];
+    vmLoadsList = [{ w_n: 800, dir: 'downward', x_mm: 50 }];
     renderVmLoadsTable();
     calculate();
 });
@@ -658,7 +670,7 @@ document.getElementById('btnPresetEx1').addEventListener('click', () => {
     inputs.loadType.value = 'steady';
     inputs.cmValue.value = 1.5;
     inputs.ctValue.value = 1.0;
-    vmLoadsList = [{ w_n: 8220, x_mm: 437.5 }];
+    vmLoadsList = [{ w_n: 8220, dir: 'downward', x_mm: 437.5 }];
     renderVmLoadsTable();
     calculate();
 });
@@ -678,7 +690,7 @@ document.getElementById('btnPresetEx4').addEventListener('click', () => {
     inputs.tensileStrength.value = 400;
     inputs.cmValue.value = 1.5;
     inputs.ctValue.value = 1.0;
-    vmLoadsList = [{ w_n: 4, x_mm: 80 }];
+    vmLoadsList = [{ w_n: 4, dir: 'downward', x_mm: 80 }];
     renderVmLoadsTable();
     calculate();
 });

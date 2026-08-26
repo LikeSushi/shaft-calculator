@@ -72,11 +72,16 @@ class AdvancedMechanicalShaft:
     def calculate_vm_diagram(self, length_mm, load_n, position_a_mm):
         return self.calculate_multi_load_vm_diagram(
             length_mm=length_mm,
-            loads=[{"w_n": load_n, "x_mm": position_a_mm}],
+            loads=[{"w_n": -abs(load_n), "x_mm": position_a_mm}],
             beam_type="ss"
         )
 
     def calculate_multi_load_vm_diagram(self, length_mm, loads, beam_type="ss", xa_mm=0.0, xb_mm=None):
+        """
+        คำนวณแผนภาพ V-M ตามระบบพิกัดฉาก 2D (X -> ความยาวเพลา, Y -> ทิศทางแรง +Y ขึ้น, -Y ลง)
+        - loads: รายการแรงเวกเตอร์ [{"w_n": -500, "x_mm": 30}, {"w_n": +200, "x_mm": 70}]
+        - beam_type: "ss" (Simply Supported), "cantilever" (คานยื่นยึดแน่นซ้าย), "overhanging" (คานยื่นพาดเรียบ)
+        """
         L = max(float(length_mm), 1.0)
         xa = float(xa_mm)
         xb = float(xb_mm) if xb_mm is not None else L
@@ -93,13 +98,13 @@ class AdvancedMechanicalShaft:
         ra, rb = 0.0, 0.0
 
         if beam_type == "cantilever":
-            ra = total_w
+            ra = -total_w
             rb = 0.0
-            ma_fixed = sum(l["w_n"] * l["x_mm"] for l in parsed_loads)
+            ma_fixed = sum(l["w_n"] * (l["x_mm"] - xa) for l in parsed_loads)
         else:
             span = max(xb - xa, 1.0)
-            rb = sum(l["w_n"] * (l["x_mm"] - xa) for l in parsed_loads) / span
-            ra = total_w - rb
+            rb = -sum(l["w_n"] * (l["x_mm"] - xa) for l in parsed_loads) / span
+            ra = -total_w - rb
 
         num_points = 200
         x_points = [ (i * L) / num_points for i in range(num_points + 1) ]
@@ -107,19 +112,16 @@ class AdvancedMechanicalShaft:
         m_points = []
 
         for x in x_points:
-            if beam_type == "cantilever":
-                v_x = sum(l["w_n"] for l in parsed_loads if l["x_mm"] >= x)
-                m_x = -sum(l["w_n"] * (l["x_mm"] - x) for l in parsed_loads if l["x_mm"] >= x)
-            else:
-                term_ra = ra if x >= xa else 0.0
-                term_rb = rb if x >= xb else 0.0
-                term_w = sum(l["w_n"] for l in parsed_loads if l["x_mm"] <= x)
-                v_x = term_ra + term_rb - term_w
+            term_ra = ra if x >= xa else 0.0
+            term_rb = rb if x >= xb else 0.0
+            term_w = sum(l["w_n"] for l in parsed_loads if l["x_mm"] <= x)
+            v_x = term_ra + term_rb + term_w
 
-                m_ra = ra * max(x - xa, 0.0)
-                m_rb = rb * max(x - xb, 0.0)
-                m_w = sum(l["w_n"] * (x - l["x_mm"]) for l in parsed_loads if l["x_mm"] <= x)
-                m_x = m_ra + m_rb - m_w
+            m_fixed_term = ma_fixed if x >= xa else 0.0
+            m_ra = ra * max(x - xa, 0.0)
+            m_rb = rb * max(x - xb, 0.0)
+            m_w = sum(l["w_n"] * (x - l["x_mm"]) for l in parsed_loads if l["x_mm"] <= x)
+            m_x = m_fixed_term + m_ra + m_rb + m_w
 
             v_points.append(v_x)
             m_points.append(m_x)
