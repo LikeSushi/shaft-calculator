@@ -7,7 +7,6 @@ class AdvancedMechanicalShaft:
     เรื่อง Shafts (Part 2) Sizing & Strength of Materials
     โดย ผศ.ดร.สุภชัย วงศ์บุนยง (มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี - FIBO)
     """
-    # ตารางขนาดระบุของเพลาตามมาตรฐาน ISO/R 775-1969 (ตารางที่ 9.1 ในชีทเรียน หน้า 21)
     ISO_STANDARD_DIAMETERS_MM = [
         6, 7, 8, 9, 10, 12, 14, 18, 20, 25, 30, 35, 40, 45, 50, 
         55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 120, 130, 140, 
@@ -15,13 +14,6 @@ class AdvancedMechanicalShaft:
     ]
 
     def __init__(self, sut_mpa=None, sy_mpa=250.0, d_mm=None, g_mpa=79000.0, e_mpa=205000.0):
-        """
-        sy_mpa: Yield Strength (MPa) [ค่าเริ่มต้น 250 MPa]
-        sut_mpa: Ultimate Tensile Strength (MPa) [ถ้าไม่ระบุ จะประมาณ 1.6 * Sy]
-        d_mm: ขนาดเส้นผ่านศูนย์กลางเพลา (mm)
-        g_mpa: Modulus of Rigidity (MPa) [ค่าเริ่มต้น 79,000 MPa สำหรับเหล็กกล้า]
-        e_mpa: Modulus of Elasticity / Young's Modulus (MPa) [ค่าเริ่มต้น 205,000 MPa สำหรับเหล็กกล้า]
-        """
         self.sy = float(sy_mpa)
         self.sut = float(sut_mpa) if sut_mpa is not None else max(1.6 * self.sy, self.sy + 100.0)
         self.d = float(d_mm) if d_mm is not None else None
@@ -30,9 +22,6 @@ class AdvancedMechanicalShaft:
 
     @staticmethod
     def get_iso_standard_diameter(d_calculated_mm):
-        """
-        เลือกขนาดเพลามาตรฐาน ISO/R 775-1969 ถัดไปที่ใหญ่กว่าหรือเท่ากับค่าที่คำนวณได้ (ตาราง 9.1 หน้า 21)
-        """
         for std_d in AdvancedMechanicalShaft.ISO_STANDARD_DIAMETERS_MM:
             if std_d >= d_calculated_mm:
                 return std_d
@@ -40,10 +29,6 @@ class AdvancedMechanicalShaft:
 
     @staticmethod
     def calculate_torque_from_power(power_w, rpm):
-        """
-        คำนวณแรงบิด (Torque, T) ในหน่วย N-m หรือ N-mm จากกำลังมอเตอร์ (Watt) และความเร็วรอบ (RPM)
-        P = T * omega  =>  T = P / (2 * pi * N / 60)
-        """
         if rpm <= 0:
             raise ValueError("ความเร็วรอบ (RPM) ต้องมากกว่า 0")
         omega = (2.0 * math.pi * float(rpm)) / 60.0
@@ -51,15 +36,6 @@ class AdvancedMechanicalShaft:
         return torque_nm
 
     def calculate_asme_allowable_shear(self, has_keyway=True, use_material_properties=False):
-        """
-        คำนวณความเค้นเฉือนที่ยอมให้ (Allowable Shear Stress, tau_d) ตามมาตรฐาน ASME (หน้า 26 ในชีทเรียน)
-        - หากใช้ค่ามาตรฐาน ASME (Default): 
-            * ไม่มีร่องลิ่ม: tau_d = 55 N/mm^2 (MPa)
-            * มีร่องลิ่ม:   tau_d = 41 N/mm^2 (MPa)
-        - หากระบุชนิดวัสดุ (If material type specified):
-            * tau_d = min(0.3 * Sy, 0.18 * Sut)
-            * หากมีร่องลิ่ม ให้ลดค่าลง 25% (คูณ 0.75)
-        """
         if use_material_properties and self.sy and self.sut:
             tau_mat = min(0.3 * self.sy, 0.18 * self.sut)
             tau_d = tau_mat * 0.75 if has_keyway else tau_mat
@@ -69,16 +45,6 @@ class AdvancedMechanicalShaft:
         return tau_d
 
     def calculate_buckling_factor(self, d_mm, length_mm, is_compressive=True, end_condition="SS"):
-        """
-        คำนวณ Buckling Factor (alpha) สำหรับแรงอัดในแนวแกน ตามมาตรฐาน ASME (หน้า 28 ในชีทเรียน)
-        - แรงดึง (Tensile): alpha = 1.0
-        - แรงอัด (Compressive):
-            * k = d / 4 (Radius of gyration เพลาตัน)
-            * Slenderness Ratio L/k = 4 * L / d
-            * ถ้า L/k <= 115: alpha = 1 / (1 - 0.0044 * (L/k))
-            * ถ้า L/k > 115:  alpha = (Sy * (L/k)^2) / (pi^2 * n * E)
-              โดยที่ n = 1.00 (SS), 2.25 (CC), 1.60 (SC), 0.25 (CF)
-        """
         if not is_compressive or d_mm <= 0:
             return 1.0
             
@@ -88,10 +54,10 @@ class AdvancedMechanicalShaft:
         slenderness = l_mm / k_gyration
         
         n_map = {
-            "SS": 1.00,  # Simply Supported
-            "CC": 2.25,  # Clamped-Clamped (Fixed-Fixed)
-            "SC": 1.60,  # Simply Supported - Clamped
-            "CF": 0.25   # Clamped-Free
+            "SS": 1.00,
+            "CC": 2.25,
+            "SC": 1.60,
+            "CF": 0.25
         }
         n_end = n_map.get(end_condition, 1.00)
         
@@ -103,38 +69,64 @@ class AdvancedMechanicalShaft:
             
         return alpha
 
-    def asme_shaft_design(self, torque_nmm, bending_moment_nmm, axial_force_n=0.0, length_mm=100.0, is_compressive=True, end_condition="SS", is_rotating=True, load_type="steady", has_keyway=True, use_material_properties=False):
+    def calculate_vm_diagram(self, length_mm, load_n, position_a_mm):
         """
-        คำนวณขนาดเพลาตามมาตรฐาน ASME (ASME Shaft Design Full & Simplified Form - หน้า 25 & 28 ในชีทเรียน)
-        สมการแบบเต็ม (Full Form):
-        d^3 = (16 / (pi * tau_d)) * sqrt((C_t * T)^2 + ( (alpha * F * d) / 8 + C_m * M )^2)
+        คำนวณแผนภาพแรงเฉือน (V) และโมเมนต์ดัด (M) สำหรับเพลารับแรงจุด (Point Load) บนจุดรองรับสองฝั่ง
+        L: ความยาวเพลา (mm)
+        W: แรงกระทำทางขวาง (N)
+        a: ระยะแรงกระทำจากจุดยึดซ้าย (mm)
+        """
+        L = max(float(length_mm), 1.0)
+        W = float(load_n)
+        a = min(max(float(position_a_mm), 0.0), L)
+        b = L - a
 
-        พารามิเตอร์:
-        - torque_nmm: แรงบิด T (N-mm)
-        - bending_moment_nmm: โมเมนต์ดัดรวม M (N-mm)
-        - axial_force_n: แรงในแนวแกน F (N) [ค่าบวก, 0 ถ้าไม่มี]
-        - length_mm: ความยาวเพลา (mm)
-        - is_compressive: True ถ้าแรง F เป็นแรงอัด (Compressive), False ถ้าเป็นแรงดึง
-        - end_condition: ประเภทจุดยึดปลายเพลา "SS" (Simply Supported), "CC" (Clamped-Clamped), "SC", "CF"
+        # แรงปฏิกิริยาที่จุดรองรับ A และ B
+        ra = (W * b) / L
+        rb = (W * a) / L
+
+        # แรงเฉือนสูงสุด V_max (N) และโมเมนต์ดัดสูงสุด M_max (N-mm)
+        v_max = max(abs(ra), abs(rb))
+        m_max_nmm = ra * a  # หรือ rb * b
+        m_max_nm = m_max_nmm / 1000.0
+
+        return {
+            "L_mm": L,
+            "W_n": W,
+            "a_mm": a,
+            "b_mm": b,
+            "ra_n": ra,
+            "rb_n": rb,
+            "v_max_n": v_max,
+            "m_max_nmm": m_max_nmm,
+            "m_max_nm": m_max_nm
+        }
+
+    def asme_shaft_design(self, torque_nmm, bending_moment_nmm, axial_force_n=0.0, length_mm=100.0, 
+                          is_compressive=True, end_condition="SS", is_rotating=True, load_type="steady", 
+                          has_keyway=True, use_material_properties=False, cm_custom=None, ct_custom=None):
         """
-        # อ่านค่า Cm และ Ct จากตารางที่ 9.2 ในชีทเรียน (หน้า 27)
-        if not is_rotating:  # เพลาอยู่นิ่ง
-            if load_type == "steady":
-                cm, ct = 1.0, 1.0
-            else:  # shock load
-                cm, ct = 1.75, 1.75
-        else:  # เพลาหมุน
-            if load_type == "steady":
-                cm, ct = 1.5, 1.0
-            elif load_type == "light_shock":
-                cm, ct = 1.75, 1.25
-            else:  # heavy_shock
-                cm, ct = 2.5, 2.25
+        คำนวณขนาดเพลาตามมาตรฐาน ASME (รองรับการกำหนด Cm, Ct เองได้อิสระ)
+        """
+        if cm_custom is not None and ct_custom is not None:
+            cm, ct = float(cm_custom), float(ct_custom)
+        else:
+            if not is_rotating:
+                if load_type == "steady":
+                    cm, ct = 1.0, 1.0
+                else:
+                    cm, ct = 1.75, 1.75
+            else:
+                if load_type == "steady":
+                    cm, ct = 1.5, 1.0
+                elif load_type == "light_shock":
+                    cm, ct = 1.75, 1.25
+                else:
+                    cm, ct = 2.5, 2.25
 
         tau_d = self.calculate_asme_allowable_shear(has_keyway=has_keyway, use_material_properties=use_material_properties)
         f_axial = abs(float(axial_force_n))
         
-        # วนลูปคำนวณหา d_calc แบบ Iterative Solver (เนื่องจาก d อยู่ทั้งสองฝั่งของสมการเมื่อมีแรง F)
         d_curr = 10.0
         alpha = 1.0
         
@@ -170,11 +162,6 @@ class AdvancedMechanicalShaft:
         }
 
     def calculate_torsional_deflection(self, torque_nmm, length_mm, d_mm=None, d_inner_mm=0.0):
-        """
-        คำนวณมุมบิดเพลา (Twisted Angle Calculation - หัวข้อ 2.5 ในชีทเรียน หน้า 29)
-        เพลากลมตัน:  theta = (584 * T * L) / (G * d^4)
-        เพลากลมกลวง: theta = (584 * T * L) / ((1 - K^4) * G * d^4)  โดยที่ K = d_i / d
-        """
         d = float(d_mm) if d_mm is not None else self.d
         if d is None or d <= 0:
             raise ValueError("ต้องระบุขนาดเส้นผ่านศูนย์กลางเพลา (d_mm)")
@@ -199,17 +186,11 @@ class AdvancedMechanicalShaft:
         }
 
     def calculate_critical_speed(self, loads_n, distances_mm, total_length_mm, d_mm=None):
-        """
-        คำนวณความเร็ววิกฤตของเพลา (Critical Speed - หัวข้อ 2.7 ในชีทเรียน หน้า 51-53)
-        สูตร Rayleigh-Dunkerley (หน้า 52):
-        n_c = 945 * sqrt( sum(W_i * y_i) / sum(W_i * y_i^2) )  [หน่วย rpm]
-        """
         d = float(d_mm) if d_mm is not None else self.d
         if d is None or d <= 0:
             raise ValueError("ต้องระบุขนาดเส้นผ่านศูนย์กลางเพลา (d_mm)")
             
-        i_inertia = (math.pi * (d**4)) / 64.0  # Moment of Inertia (mm^4)
-        
+        i_inertia = (math.pi * (d**4)) / 64.0
         sum_wy = 0.0
         sum_wy2 = 0.0
         deflections_mm = []
@@ -233,15 +214,12 @@ class AdvancedMechanicalShaft:
         }
 
     def fatigue_analysis(self, m_a_nm, t_m_nm, kt=1.0, kts=1.0, d_mm=None):
-        """
-        คำนวณ Safety Factor สำหรับความล้า (Fatigue - Modified Goodman) และ Static Yield (Von Mises)
-        """
         d = float(d_mm) if d_mm is not None else self.d
         if d is None or d <= 0:
             raise ValueError("ต้องระบุขนาดเส้นผ่านศูนย์กลางเพลา (d_mm)")
             
-        m_a = float(m_a_nm) * 1000.0  # N-mm
-        t_m = float(t_m_nm) * 1000.0  # N-mm
+        m_a = float(m_a_nm) * 1000.0
+        t_m = float(t_m_nm) * 1000.0
         
         se_prime = 0.5 * self.sut if self.sut <= 1400 else 700.0
         ka = 4.51 * (self.sut)**(-0.265)

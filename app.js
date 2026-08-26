@@ -21,6 +21,14 @@ const SC_PRESETS = {
     SHARP_NOTCH: { kt: 2.5, kts: 2.0 }
 };
 
+// ASME Load & Shock Factors Presets (Cm, Ct)
+const ASME_LOAD_PRESETS = {
+    steady: { cm: 1.5, ct: 1.0 },
+    light_shock: { cm: 1.75, ct: 1.25 },
+    heavy_shock: { cm: 2.5, ct: 2.25 },
+    stat_steady: { cm: 1.0, ct: 1.0 }
+};
+
 // DOM Elements
 const inputs = {
     powerW: document.getElementById('powerW'),
@@ -38,7 +46,13 @@ const inputs = {
     tensileStrength: document.getElementById('tensileStrength'),
     fos: document.getElementById('fos'),
     hasKeyway: document.getElementById('hasKeyway'),
-    loadType: document.getElementById('loadType')
+    loadType: document.getElementById('loadType'),
+    cmValue: document.getElementById('cmValue'),
+    ctValue: document.getElementById('ctValue'),
+
+    // V-M Diagram Inputs
+    vmLoadN: document.getElementById('vmLoadN'),
+    vmPosA: document.getElementById('vmPosA')
 };
 
 const outputs = {
@@ -56,11 +70,27 @@ const outputs = {
     resGoodmanFos: document.getElementById('resGoodmanFos'),
     verdictBadge: document.getElementById('verdictBadge'),
     adviceBox: document.getElementById('adviceBox'),
-    adviceText: document.getElementById('adviceText')
+    adviceText: document.getElementById('adviceText'),
+
+    // V-M Diagram Outputs
+    resVmRa: document.getElementById('resVmRa'),
+    resVmRb: document.getElementById('resVmRb'),
+    resVmVmax: document.getElementById('resVmVmax'),
+    resVmMmaxNm: document.getElementById('resVmMmaxNm'),
+    resVmMmaxNmm: document.getElementById('resVmMmaxNmm')
 };
 
-const canvas = document.getElementById('shaftCanvas');
-const ctx = canvas.getContext('2d');
+const btnSyncMoment = document.getElementById('btnSyncMoment');
+
+const shaftCanvas = document.getElementById('shaftCanvas');
+const sfdCanvas = document.getElementById('sfdCanvas');
+const bmdCanvas = document.getElementById('bmdCanvas');
+
+const ctxShaft = shaftCanvas.getContext('2d');
+const ctxSFD = sfdCanvas.getContext('2d');
+const ctxBMD = bmdCanvas.getContext('2d');
+
+let lastCalculatedMmaxNm = 20.0;
 
 // Helper Functions
 function getIsoStandardDiameter(dCalc) {
@@ -68,16 +98,6 @@ function getIsoStandardDiameter(dCalc) {
         if (std >= dCalc) return std;
     }
     return Math.ceil(dCalc);
-}
-
-function getAsmeFactors(loadType) {
-    switch (loadType) {
-        case 'steady': return { cm: 1.5, ct: 1.0 };
-        case 'light_shock': return { cm: 1.75, ct: 1.25 };
-        case 'heavy_shock': return { cm: 2.5, ct: 2.25 };
-        case 'stat_steady': return { cm: 1.0, ct: 1.0 };
-        default: return { cm: 1.5, ct: 1.0 };
-    }
 }
 
 function calculateBucklingAlpha(d, L, isCompressive, endCondition, Sy, E) {
@@ -96,6 +116,134 @@ function calculateBucklingAlpha(d, L, isCompressive, endCondition, Sy, E) {
     }
 }
 
+// V-M Diagram Calculation Engine (User Request 2)
+function updateVmDiagram(L_mm) {
+    const W = Math.abs(parseFloat(inputs.vmLoadN.value) || 0);
+    let a = parseFloat(inputs.vmPosA.value) || 0;
+    if (a < 0) a = 0;
+    if (a > L_mm) a = L_mm;
+
+    const b = L_mm - a;
+
+    // Reactions
+    const Ra = L_mm > 0 ? (W * b) / L_mm : 0;
+    const Rb = L_mm > 0 ? (W * a) / L_mm : 0;
+
+    // Max Shear & Max Moment
+    const Vmax = Math.max(Math.abs(Ra), Math.abs(Rb));
+    const Mmax_nmm = Ra * a;
+    const Mmax_nm = Mmax_nmm / 1000.0;
+
+    lastCalculatedMmaxNm = Mmax_nm;
+
+    outputs.resVmRa.innerText = `${Ra.toFixed(1)} N`;
+    outputs.resVmRb.innerText = `${Rb.toFixed(1)} N`;
+    outputs.resVmVmax.innerText = `${Vmax.toFixed(1)} N`;
+    outputs.resVmMmaxNm.innerText = `${Mmax_nm.toFixed(2)} N-m`;
+    outputs.resVmMmaxNmm.innerText = `${Math.round(Mmax_nmm).toLocaleString()} N-mm`;
+    btnSyncMoment.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (${Mmax_nm.toFixed(2)} N-m) เข้าไปคำนวณเพลาหลักทันที`;
+
+    // Draw SFD and BMD Canvases
+    drawSFDDiagram(L_mm, a, Ra, Rb, Vmax);
+    drawBMDDiagram(L_mm, a, Mmax_nm, Mmax_nmm);
+}
+
+// Draw Shear Force Diagram V(x)
+function drawSFDDiagram(L, a, Ra, Rb, Vmax) {
+    const width = sfdCanvas.width;
+    const height = sfdCanvas.height;
+    ctxSFD.clearRect(0, 0, width, height);
+
+    const centerY = height / 2;
+    const startX = 60;
+    const endX = width - 60;
+    const plotWidth = endX - startX;
+    const loadX = startX + (a / L) * plotWidth;
+
+    // Zero Line
+    ctxSFD.strokeStyle = '#94a3b8';
+    ctxSFD.setLineDash([4, 4]);
+    ctxSFD.beginPath();
+    ctxSFD.moveTo(startX, centerY);
+    ctxSFD.lineTo(endX, centerY);
+    ctxSFD.stroke();
+    ctxSFD.setLineDash([]);
+
+    if (Vmax <= 0) return;
+
+    const maxH = height / 2 - 25;
+    const hRa = (Ra / Vmax) * maxH;
+    const hRb = (Rb / Vmax) * maxH;
+
+    // SFD Shape
+    ctxSFD.fillStyle = 'rgba(2, 132, 199, 0.15)';
+    ctxSFD.strokeStyle = '#0284c7';
+    ctxSFD.lineWidth = 2;
+
+    ctxSFD.beginPath();
+    ctxSFD.moveTo(startX, centerY);
+    ctxSFD.lineTo(startX, centerY - hRa);
+    ctxSFD.lineTo(loadX, centerY - hRa);
+    ctxSFD.lineTo(loadX, centerY + hRb);
+    ctxSFD.lineTo(endX, centerY + hRb);
+    ctxSFD.lineTo(endX, centerY);
+    ctxSFD.closePath();
+    ctxSFD.fill();
+    ctxSFD.stroke();
+
+    // Values Text
+    ctxSFD.fillStyle = '#1e3a8a';
+    ctxSFD.font = '600 11px Inter, sans-serif';
+    ctxSFD.fillText(`+V = ${Ra.toFixed(1)} N`, startX + 10, centerY - hRa - 6);
+    ctxSFD.fillStyle = '#dc2626';
+    ctxSFD.fillText(`-V = ${Rb.toFixed(1)} N`, loadX + 10, centerY + hRb + 14);
+}
+
+// Draw Bending Moment Diagram M(x)
+function drawBMDDiagram(L, a, MmaxNm, MmaxNmm) {
+    const width = bmdCanvas.width;
+    const height = bmdCanvas.height;
+    ctxBMD.clearRect(0, 0, width, height);
+
+    const centerY = height - 25;
+    const startX = 60;
+    const endX = width - 60;
+    const plotWidth = endX - startX;
+    const loadX = startX + (a / L) * plotWidth;
+
+    // Zero Line
+    ctxBMD.strokeStyle = '#94a3b8';
+    ctxBMD.setLineDash([4, 4]);
+    ctxBMD.beginPath();
+    ctxBMD.moveTo(startX, centerY);
+    ctxBMD.lineTo(endX, centerY);
+    ctxBMD.stroke();
+    ctxBMD.setLineDash([]);
+
+    if (MmaxNm <= 0) return;
+
+    const maxH = height - 55;
+
+    // BMD Shape
+    ctxBMD.fillStyle = 'rgba(15, 118, 110, 0.15)';
+    ctxBMD.strokeStyle = '#0f766e';
+    ctxBMD.lineWidth = 2;
+
+    ctxBMD.beginPath();
+    ctxBMD.moveTo(startX, centerY);
+    ctxBMD.lineTo(loadX, centerY - maxH);
+    ctxBMD.lineTo(endX, centerY);
+    ctxBMD.closePath();
+    ctxBMD.fill();
+    ctxBMD.stroke();
+
+    // Peak Label
+    ctxBMD.fillStyle = '#0f766e';
+    ctxBMD.font = '700 12px Inter, sans-serif';
+    ctxBMD.textAlign = 'center';
+    ctxBMD.fillText(`M_max = ${MmaxNm.toFixed(2)} N-m`, loadX, centerY - maxH - 8);
+}
+
 // Calculation Engine
 function calculate() {
     const P = parseFloat(inputs.powerW.value) || 0;
@@ -111,7 +259,10 @@ function calculate() {
     const Sut = parseFloat(inputs.tensileStrength.value) || 400;
     const targetFos = parseFloat(inputs.fos.value) || 2.0;
     const hasKeyway = inputs.hasKeyway.value === 'true';
-    const loadType = inputs.loadType.value;
+
+    // Custom Cm & Ct (User Request 1)
+    const cm = parseFloat(inputs.cmValue.value) || 1.5;
+    const ct = parseFloat(inputs.ctValue.value) || 1.0;
 
     // 1. Calculate Torque (T)
     const omega = (2 * Math.PI * N) / 60.0;
@@ -121,7 +272,6 @@ function calculate() {
 
     // 2. ASME Allowable Shear Stress (tau_d)
     const tau_d = hasKeyway ? 41.0 : 55.0;
-    const { cm, ct } = getAsmeFactors(loadType);
 
     // 3. Full ASME Sizing Equation with Axial Load & Buckling (Iterative Solver)
     const E = 205000.0;
@@ -204,7 +354,7 @@ function calculate() {
         outputs.adviceBox.style.background = '#f0fdf4';
         outputs.adviceBox.style.borderColor = '#bbf7d0';
         outputs.adviceBox.style.color = '#15803d';
-        outputs.adviceText.innerText = `เพลาขนาด ${d_iso} mm ผ่านเกณฑ์วิศวกรรมทั้ง Static Yield (FOS=${n_yield.toFixed(2)}) และ Fatigue Goodman (FOS=${n_goodman.toFixed(2)}) [Kt=${Kt}, Kts=${Kts}]`;
+        outputs.adviceText.innerText = `เพลาขนาด ${d_iso} mm ผ่านเกณฑ์วิศวกรรมทั้ง Static Yield (FOS=${n_yield.toFixed(2)}) และ Fatigue Goodman (FOS=${n_goodman.toFixed(2)}) [Cm=${cm}, Ct=${ct}]`;
     } else {
         outputs.verdictBadge.className = 'verdict-tag verdict-warn';
         outputs.verdictBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> RECOMMEND RESIZING';
@@ -216,8 +366,9 @@ function calculate() {
         outputs.adviceText.innerText = `เพลาขนาด ${d_iso} mm มี Goodman FOS=${n_goodman.toFixed(2)} (เป้าหมาย=${targetFos}) แนะนำขยายเป็นขนาดมาตรฐาน ${recNext} mm`;
     }
 
-    // Trigger KaTeX Math Render
+    // Trigger KaTeX Math Render & V-M Diagram Update
     renderKaTeXMath();
+    updateVmDiagram(L_mm);
 
     // Draw Shaft Visualizer
     drawShaftVisualizer(d_iso, L_mm, hasKeyway, T_nm, F_axial, isCompressive);
@@ -238,9 +389,9 @@ function renderKaTeXMath() {
 
 // Draw Scientific Paper Shaft Diagram
 function drawShaftVisualizer(d, L, hasKeyway, T, F, isCompressive) {
-    const width = canvas.width;
-    const height = canvas.height;
-    ctx.clearRect(0, 0, width, height);
+    const width = shaftCanvas.width;
+    const height = shaftCanvas.height;
+    ctxShaft.clearRect(0, 0, width, height);
 
     const centerY = height / 2;
     const shaftX = 100;
@@ -248,87 +399,87 @@ function drawShaftVisualizer(d, L, hasKeyway, T, F, isCompressive) {
     const shaftHeight = Math.min(Math.max(d * 2.5, 20), 80);
 
     // Center Axis Line
-    ctx.strokeStyle = '#94a3b8';
-    ctx.setLineDash([6, 6]);
-    ctx.beginPath();
-    ctx.moveTo(30, centerY);
-    ctx.lineTo(width - 30, centerY);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    ctxShaft.strokeStyle = '#94a3b8';
+    ctxShaft.setLineDash([6, 6]);
+    ctxShaft.beginPath();
+    ctxShaft.moveTo(30, centerY);
+    ctxShaft.lineTo(width - 30, centerY);
+    ctxShaft.stroke();
+    ctxShaft.setLineDash([]);
 
     // Shaft Body
-    ctx.fillStyle = '#f1f5f9';
-    ctx.strokeStyle = '#1e3a8a';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.rect(shaftX, centerY - shaftHeight / 2, shaftWidth, shaftHeight);
-    ctx.fill();
-    ctx.stroke();
+    ctxShaft.fillStyle = '#f1f5f9';
+    ctxShaft.strokeStyle = '#1e3a8a';
+    ctxShaft.lineWidth = 2;
+    ctxShaft.beginPath();
+    ctxShaft.rect(shaftX, centerY - shaftHeight / 2, shaftWidth, shaftHeight);
+    ctxShaft.fill();
+    ctxShaft.stroke();
 
     // Keyway Notch
     if (hasKeyway) {
-        ctx.fillStyle = '#ffffff';
-        ctx.strokeStyle = '#b45309';
-        ctx.lineWidth = 1.5;
-        ctx.fillRect(shaftX + shaftWidth / 2 - 25, centerY - shaftHeight / 2, 50, 10);
-        ctx.strokeRect(shaftX + shaftWidth / 2 - 25, centerY - shaftHeight / 2, 50, 10);
+        ctxShaft.fillStyle = '#ffffff';
+        ctxShaft.strokeStyle = '#b45309';
+        ctxShaft.lineWidth = 1.5;
+        ctxShaft.fillRect(shaftX + shaftWidth / 2 - 25, centerY - shaftHeight / 2, 50, 10);
+        ctxShaft.strokeRect(shaftX + shaftWidth / 2 - 25, centerY - shaftHeight / 2, 50, 10);
     }
 
     // Bearings
-    ctx.fillStyle = '#64748b';
-    ctx.fillRect(shaftX + 20, centerY - shaftHeight / 2 - 14, 24, shaftHeight + 28);
-    ctx.fillRect(shaftX + shaftWidth - 44, centerY - shaftHeight / 2 - 14, 24, shaftHeight + 28);
+    ctxShaft.fillStyle = '#64748b';
+    ctxShaft.fillRect(shaftX + 20, centerY - shaftHeight / 2 - 14, 24, shaftHeight + 28);
+    ctxShaft.fillRect(shaftX + shaftWidth - 44, centerY - shaftHeight / 2 - 14, 24, shaftHeight + 28);
 
     // Torque Arrow
     if (T > 0) {
-        ctx.strokeStyle = '#0284c7';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(shaftX + shaftWidth - 10, centerY, shaftHeight / 2 + 15, -Math.PI / 2, Math.PI / 2);
-        ctx.stroke();
-        ctx.fillStyle = '#0284c7';
-        ctx.beginPath();
-        ctx.arc(shaftX + shaftWidth - 10, centerY + shaftHeight / 2 + 15, 5, 0, Math.PI * 2);
-        ctx.fill();
+        ctxShaft.strokeStyle = '#0284c7';
+        ctxShaft.lineWidth = 3;
+        ctxShaft.beginPath();
+        ctxShaft.arc(shaftX + shaftWidth - 10, centerY, shaftHeight / 2 + 15, -Math.PI / 2, Math.PI / 2);
+        ctxShaft.stroke();
+        ctxShaft.fillStyle = '#0284c7';
+        ctxShaft.beginPath();
+        ctxShaft.arc(shaftX + shaftWidth - 10, centerY + shaftHeight / 2 + 15, 5, 0, Math.PI * 2);
+        ctxShaft.fill();
     }
 
     // Axial Force Arrow (F)
     if (F > 0) {
-        ctx.strokeStyle = '#dc2626';
-        ctx.fillStyle = '#dc2626';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
+        ctxShaft.strokeStyle = '#dc2626';
+        ctxShaft.fillStyle = '#dc2626';
+        ctxShaft.lineWidth = 3;
+        ctxShaft.beginPath();
         if (isCompressive) {
-            ctx.moveTo(35, centerY);
-            ctx.lineTo(shaftX - 5, centerY);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(shaftX - 5, centerY);
-            ctx.lineTo(shaftX - 15, centerY - 6);
-            ctx.lineTo(shaftX - 15, centerY + 6);
-            ctx.closePath();
-            ctx.fill();
+            ctxShaft.moveTo(35, centerY);
+            ctxShaft.lineTo(shaftX - 5, centerY);
+            ctxShaft.stroke();
+            ctxShaft.beginPath();
+            ctxShaft.moveTo(shaftX - 5, centerY);
+            ctxShaft.lineTo(shaftX - 15, centerY - 6);
+            ctxShaft.lineTo(shaftX - 15, centerY + 6);
+            ctxShaft.closePath();
+            ctxShaft.fill();
         } else {
-            ctx.moveTo(shaftX, centerY);
-            ctx.lineTo(35, centerY);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(35, centerY);
-            ctx.lineTo(45, centerY - 6);
-            ctx.lineTo(45, centerY + 6);
-            ctx.closePath();
-            ctx.fill();
+            ctxShaft.moveTo(shaftX, centerY);
+            ctxShaft.lineTo(35, centerY);
+            ctxShaft.stroke();
+            ctxShaft.beginPath();
+            ctxShaft.moveTo(35, centerY);
+            ctxShaft.lineTo(45, centerY - 6);
+            ctxShaft.lineTo(45, centerY + 6);
+            ctxShaft.closePath();
+            ctxShaft.fill();
         }
-        ctx.font = '11px Inter, sans-serif';
-        ctx.fillText(`F = ${F} N`, 50, centerY - 12);
+        ctxShaft.font = '11px Inter, sans-serif';
+        ctxShaft.fillText(`F = ${F} N`, 50, centerY - 12);
     }
 
     // Dimension Annotations
-    ctx.fillStyle = '#0f172a';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`ISO Nominal Diameter d = ${d} mm`, shaftX + shaftWidth / 2, centerY + shaftHeight / 2 + 35);
-    ctx.fillText(`Length L = ${L} mm`, shaftX + shaftWidth / 2, centerY - shaftHeight / 2 - 25);
+    ctxShaft.fillStyle = '#0f172a';
+    ctxShaft.font = '12px Inter, sans-serif';
+    ctxShaft.textAlign = 'center';
+    ctxShaft.fillText(`ISO Nominal Diameter d = ${d} mm`, shaftX + shaftWidth / 2, centerY + shaftHeight / 2 + 35);
+    ctxShaft.fillText(`Length L = ${L} mm`, shaftX + shaftWidth / 2, centerY - shaftHeight / 2 - 25);
 }
 
 // Active Button Utility
@@ -354,6 +505,8 @@ document.getElementById('btnPresetTable').addEventListener('click', () => {
     inputs.fos.value = 2.0;
     inputs.hasKeyway.value = 'true';
     inputs.loadType.value = 'steady';
+    inputs.cmValue.value = 1.5;
+    inputs.ctValue.value = 1.0;
     calculate();
 });
 
@@ -372,6 +525,8 @@ document.getElementById('btnPresetEx1').addEventListener('click', () => {
     inputs.tensileStrength.value = 400;
     inputs.hasKeyway.value = 'true';
     inputs.loadType.value = 'steady';
+    inputs.cmValue.value = 1.5;
+    inputs.ctValue.value = 1.0;
     calculate();
 });
 
@@ -388,6 +543,18 @@ document.getElementById('btnPresetEx4').addEventListener('click', () => {
     inputs.materialPreset.value = 'SS400';
     inputs.yieldStrength.value = 250;
     inputs.tensileStrength.value = 400;
+    inputs.cmValue.value = 1.5;
+    inputs.ctValue.value = 1.0;
+    calculate();
+});
+
+// ASME Load Type Dropdown Event (User Request 1)
+inputs.loadType.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (val !== 'CUSTOM' && ASME_LOAD_PRESETS[val]) {
+        inputs.cmValue.value = ASME_LOAD_PRESETS[val].cm;
+        inputs.ctValue.value = ASME_LOAD_PRESETS[val].ct;
+    }
     calculate();
 });
 
@@ -411,10 +578,18 @@ inputs.materialPreset.addEventListener('change', (e) => {
     calculate();
 });
 
+// Sync Peak Bending Moment (Mmax) to Main Calculation
+btnSyncMoment.addEventListener('click', () => {
+    inputs.bendingMoment.value = lastCalculatedMmaxNm.toFixed(2);
+    calculate();
+});
+
 // Live Event Listeners
 Object.values(inputs).forEach(input => {
-    input.addEventListener('input', calculate);
-    input.addEventListener('change', calculate);
+    if (input) {
+        input.addEventListener('input', calculate);
+        input.addEventListener('change', calculate);
+    }
 });
 
 // Initial Run with KaTeX rendering on load

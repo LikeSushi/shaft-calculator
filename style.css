@@ -129,6 +129,20 @@ body {
     border-color: var(--academic-navy);
 }
 
+.btn-sync {
+    background: var(--academic-accent);
+    color: #ffffff;
+    border-color: var(--academic-accent);
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.btn-sync:hover {
+    background: #0f5147;
+}
+
 /* Grid Layout */
 .scientific-grid {
     display: grid;
@@ -186,6 +200,8 @@ body {
 }
 
 .mb-2 { margin-bottom: 10px; }
+.mb-3 { margin-bottom: 16px; }
+.mb-4 { margin-bottom: 24px; }
 .mt-2 { margin-top: 10px; }
 
 .field-group label {
@@ -369,7 +385,7 @@ input[type="number"]:focus, select:focus {
     margin-bottom: 20px;
 }
 
-/* 2D Shaft Canvas Box */
+/* 2D Canvas Box & V-M Section */
 .diagram-box {
     border: 1px solid var(--paper-border-dark);
     border-radius: 8px;
@@ -391,6 +407,14 @@ input[type="number"]:focus, select:focus {
     display: flex;
     justify-content: center;
     padding: 10px;
+}
+
+.vm-section-box {
+    border: 2px dashed var(--academic-blue);
+    border-radius: 10px;
+    padding: 20px;
+    background: #f8fafc;
+    margin-top: 24px;
 }
 
 canvas {

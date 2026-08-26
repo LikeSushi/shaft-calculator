@@ -142,9 +142,9 @@
                     </div>
                 </fieldset>
 
-                <!-- Material Properties -->
+                <!-- Material Properties & ASME Shock Factors (Cm, Ct Customization) -->
                 <fieldset class="paper-fieldset">
-                    <legend><i class="fa-solid fa-cube"></i> Material Grade & ASME Standard</legend>
+                    <legend><i class="fa-solid fa-cube"></i> Material & Custom ASME Factors (C<sub>m</sub>, C<sub>t</sub>)</legend>
                     <div class="field-group mb-2">
                         <label for="materialPreset">Material Standard Grade</label>
                         <select id="materialPreset">
@@ -187,14 +187,27 @@
                         </div>
                     </div>
 
-                    <div class="field-group">
-                        <label for="loadType">ASME Loading Type (Table 9.2)</label>
+                    <!-- ASME Factors Cm & Ct Preset & Custom Inputs -->
+                    <div class="field-group mb-2">
+                        <label for="loadType">ASME Shock & Load Type (Table 9.2)</label>
                         <select id="loadType">
                             <option value="steady" selected>Rotating - Steady Load (Cm=1.5, Ct=1.0)</option>
                             <option value="light_shock">Rotating - Light Shock (Cm=1.75, Ct=1.25)</option>
                             <option value="heavy_shock">Rotating - Heavy Shock (Cm=2.5, Ct=2.25)</option>
                             <option value="stat_steady">Stationary - Steady Load (Cm=1.0, Ct=1.0)</option>
+                            <option value="CUSTOM">Custom C<sub>m</sub> & C<sub>t</sub> (กำหนดเอง)</option>
                         </select>
+                    </div>
+
+                    <div class="form-row-2">
+                        <div class="field-group">
+                            <label for="cmValue">Bending Factor C<sub>m</sub></label>
+                            <input type="number" id="cmValue" value="1.5" step="0.05">
+                        </div>
+                        <div class="field-group">
+                            <label for="ctValue">Torsion Factor C<sub>t</sub></label>
+                            <input type="number" id="ctValue" value="1.0" step="0.05">
+                        </div>
                     </div>
                 </fieldset>
             </section>
@@ -255,7 +268,7 @@
                     <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Engineering Equations (LaTeX Rendered)</div>
                     <div class="latex-grid">
                         <div class="latex-box">
-                            <span class="latex-label">1. ASME Sizing Equation (Full Form)</span>
+                            <span class="latex-label">1. ASME Sizing Equation (Full Form with C<sub>m</sub>, C<sub>t</sub>)</span>
                             <div class="latex-math" id="latexAsme">$$d^3 = \frac{16}{\pi \tau_d (1 - K^4)} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d (1+K^2)}{8} + C_m M\right)^2}$$</div>
                         </div>
                         <div class="latex-box">
@@ -315,12 +328,77 @@
                 </div>
 
                 <!-- 2D Shaft Diagram -->
-                <div class="diagram-box">
+                <div class="diagram-box mb-4">
                     <div class="diagram-caption"><i class="fa-solid fa-pen-ruler"></i> Figure 1: 2D Shaft Geometry & Force Vector Diagram</div>
                     <div class="canvas-paper">
                         <canvas id="shaftCanvas" width="600" height="220"></canvas>
                     </div>
                 </div>
+
+                <!-- V-M DIAGRAM CALCULATOR SECTION (USER REQUEST 2) -->
+                <div class="vm-section-box">
+                    <div class="card-title">
+                        <i class="fa-solid fa-chart-area"></i> III. Shear Force (V) & Bending Moment (M) Diagram Tool
+                    </div>
+
+                    <div class="form-row-2 mb-3">
+                        <div class="field-group">
+                            <label for="vmLoadN">Transverse Load (W)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="vmLoadN" value="800" step="any">
+                                <span class="unit-tag">N</span>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="vmPosA">Load Position (a from Left Bearing)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="vmPosA" value="50" step="any">
+                                <span class="unit-tag">mm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table class="report-table compact mb-3">
+                        <thead>
+                            <tr>
+                                <th>Left Reaction R<sub>A</sub></th>
+                                <th>Right Reaction R<sub>B</sub></th>
+                                <th>Peak Shear Force V<sub>max</sub></th>
+                                <th>Peak Bending Moment M<sub>max</sub></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td id="resVmRa">400 N</td>
+                                <td id="resVmRb">400 N</td>
+                                <td id="resVmVmax">400 N</td>
+                                <td><strong id="resVmMmaxNm" class="primary-val">20 N-m</strong> (<span id="resVmMmaxNmm">20,000 N-mm</span>)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="sync-bar mb-3">
+                        <button class="btn-scientific btn-sync" id="btnSyncMoment">
+                            <i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (20 N-m) เข้าไปคำนวณเพลาหลักทันที
+                        </button>
+                    </div>
+
+                    <!-- Dual Canvases for SFD and BMD -->
+                    <div class="diagram-box mb-3">
+                        <div class="diagram-caption"><i class="fa-solid fa-chart-line"></i> Figure 2a: Shear Force Diagram V(x) [SFD]</div>
+                        <div class="canvas-paper">
+                            <canvas id="sfdCanvas" width="600" height="150"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="diagram-box">
+                        <div class="diagram-caption"><i class="fa-solid fa-chart-area"></i> Figure 2b: Bending Moment Diagram M(x) [BMD]</div>
+                        <div class="canvas-paper">
+                            <canvas id="bmdCanvas" width="600" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+
             </section>
         </main>
     </div>
