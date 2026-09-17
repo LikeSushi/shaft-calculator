@@ -1,0 +1,69 @@
+================================================================================
+SHEET: Gear Calculator
+Input Parameters | Value | Unit | Calculated Parameters | Value | Unit |  |  | 
+Power Wp | 2000.0 | W | Gear teeth Ng | 56 |  |  |  | 165.88
+Pinion Speed np | 690.0 | rpm | Pinion pitch diameter dp | 96 | mm |  |  | 
+Gear Ratio mw | 3.5 |  | Gear pitch diameter dg | 336 | mm |  |  | 
+Pinion teeth Np | 16.0 |  | Face width b | 60 | mm |  |  | 
+Pressure angle phi | 20.0 | deg | Center distance C | 216 | mm |  |  | 
+Pinion endurance strength sigma_p | 103.0 | N/mm^2 | Pitch line velocity V | 3.46831829 | m/s |  |  | 
+Gear endurance strength sigma_g | 82.0 | N/mm^2 | Tangential force Ft | 576.6483445 | N |  |  | 
+Lewis factor Pinion Yp | 0.255 |  | Velocity factor Kv | 2.156106097 |  |  |  | 
+Lewis factor Gear Yg | 0.35 |  | Dynamic load Fd | 1243.315011 | N |  |  | 
+Module m | 6.0 | mm | Pinion strength index (sigma_p * Yp) | 26.265 | N/mm^2 |  |  | 
+Face width ratio kb | 10.0 |  | Gear strength index (sigma_g * Yg) | 28.7 | N/mm^2 |  |  | 
+Stress concentration factor Kf | 1.5 |  | Weaker component indicator | Pinion governs |  |  |  | 
+Profile quality for Kv | Ordinary Cast |  | Pinion Bending Strength Fb_pinion | 6303.6 | N |  |  | 
+Mesh type | External |  | Gear Bending Strength Fb_gear | 6888 | N |  |  | 
+Wear Factor K | 1.182 | N/mm^2 | Governing Bending Strength Fb | 6303.6 | N |  |  | 
+ |  |  | Service Factor Pinion Ns_pinion | 5.069994284 |  |  |  | 
+ |  |  | Service Factor Gear Ns_gear | 5.54002802 |  |  |  | 
+ |  |  | Governing Service Factor Ns | 5.069994284 |  |  |  | 
+ |  |  | Wear ratio factor Q | 1.555555556 |  |  |  | 
+ |  |  | Allowable wear load Fw | 10590.72 | N |  |  | 
+Safety & Design Criteria |  |  |  |  |  |  |  | 
+Pinion Bending Status: | PASS: Safe (Fb_pinion >= Fd) |  |  |  |  |  |  | 
+Gear Bending Status: | PASS: Safe (Fb_gear >= Fd) |  |  |  |  |  |  | 
+Governing Bending Status: | PASS: Safe from bending fracture (Governing Fb >= Fd) |  |  |  |  |  |  | 
+Wear Load Status: | PASS: Safe from surface pitting (Fw >= Fd) |  |  |  |  |  |  | 
+Overall Verdict: | PASS: Design is safe |  |  |  |  |  |  | 
+================================================================================
+SHEET: Module Trial Matrix
+Module m (mm) | Face width b (mm) | Pinion diameter dp (mm) | Pitch velocity V (m/s) | Tangential force Ft (N) | Dynamic factor Kv | Dynamic load Fd (N) | Fb_pinion (N) | Fb_gear (N) | Governing Fb (N) | Service factor Ns | Allowable wear load Fw (N) | Bending Safe? | Wear Safe? | Design Verdict
+2.0 | 20 | 32 | 1.156106097 | 1729.945034 | 1.385368699 | 2396.6117 | 700.4 | 765.3333333 | 700.4 | 0.2922459237 | 1176.746667 | No | No | Unsafe
+3.0 | 30 | 48 | 1.734159145 | 1153.296689 | 1.578053048 | 1819.963356 | 1575.9 | 1722 | 1575.9 | 0.865896555 | 2647.68 | No | Yes | Unsafe
+4.0 | 40 | 64 | 2.312212193 | 864.9725168 | 1.770737398 | 1531.639183 | 2801.6 | 3061.333333 | 2801.6 | 1.829151428 | 4706.986667 | Yes | Yes | Safe
+5.0 | 50 | 80 | 2.890265241 | 691.9780134 | 1.963421747 | 1358.64468 | 4377.5 | 4783.333333 | 4377.5 | 3.221960873 | 7354.666667 | Yes | Yes | Safe
+6.0 | 60 | 96 | 3.46831829 | 576.6483445 | 2.156106097 | 1243.315011 | 6303.6 | 6888 | 6303.6 | 5.069994284 | 10590.72 | Yes | Yes | Safe
+7.0 | 70 | 112 | 4.046371338 | 494.2700096 | 2.348790446 | 1160.936676 | 8579.9 | 9375.333333 | 8579.9 | 7.390497841 | 14415.14667 | Yes | Yes | Safe
+8.0 | 80 | 128 | 4.624424386 | 432.4862584 | 2.541474795 | 1099.152925 | 11206.4 | 12245.33333 | 11206.4 | 10.19548758 | 18827.94667 | Yes | Yes | Safe
+9.0 | 90 | 144 | 5.202477434 | 384.4322297 | 2.734159145 | 1051.098896 | 14183.1 | 15498 | 14183.1 | 13.49359232 | 23829.12 | Yes | Yes | Safe
+================================================================================
+SHEET: Reference Data
+Table 2.4 Lewis Form Factor (Y) |  |  |  |  |  | Table 2.5 Endurance Strength (sigma) |  |  |  | Table 2.6 Service Factor Guide |  |  | Table 2.7 Wear Factor K (N/mm^2) |  |  | 
+N | 14.5° FD | 20° FD | 20° Stub | 25° FD |  | Material | sigma (N/mm^2) | HB |  | Load Type | Service Factor (Ns) |  | Material Combination | 14.5° | 20° | 25°
+10.0 | 0.176 | 0.201 | 0.261 | - |  | ASTM 25 Grey Cast Iron | 55.0 | 174.0 |  | Smooth & steady load | 1.00 - 1.25 |  | Steel (HB 150) & Cast Iron | 0.34 | 0.465 | 0.574
+11.0 | 0.192 | 0.226 | 0.289 | - |  | ASTM 35 Grey Cast Iron | 82.0 | 212.0 |  | Light shock load | 1.25 - 1.50 |  | Steel (HB 200) & Cast Iron | 0.677 | 0.911 | 1.125
+12.0 | 0.21 | 0.245 | 0.311 | 0.242 |  | ASTM 50 Grey Cast Iron | 103.0 | 223.0 |  | Heavy shock load | 1.50 - 2.00 |  | Steel (HB 250) & Cast Iron | 1.102 | 1.505 | 1.86
+13.0 | 0.223 | 0.264 | 0.324 | 0.258 |  | Cast steel 0.2% C untreated | 138.0 | 180.0 |  |  |  |  | Steel (HB 150) & Phosphor Bronze | 0.411 | 0.562 | 0.695
+14.0 | 0.236 | 0.276 | 0.339 | 0.27 |  | Cast steel 0.2% C WQT | 172.0 | 250.0 |  |  |  |  | Steel (HB 200) & Phosphor Bronze | 0.498 | 0.681 | 0.841
+15.0 | 0.245 | 0.289 | 0.349 | 0.286 |  | SAE 1020 Case Hardened & WQT | 124.0 | 156.0 |  |  |  |  | Steel (HB 250) & Phosphor Bronze | 0.853 | 1.165 | 1.44
+16.0 | 0.255 | 0.295 | 0.36 | 0.298 |  | SAE 1030 untreated | 138.0 | 180.0 |  |  |  |  | Cast Iron & Cast Iron | 1.538 | 2.1 | 2.596
+17.0 | 0.264 | 0.302 | 0.368 | 0.311 |  | SAE 1035 untreated | 159.0 | 190.0 |  |  |  |  | Cast Iron & Phosphor Bronze | 1.182 | 1.615 | 1.996
+150.0 | 0.375 | 0.458 | 0.518 | 0.531 |  | SAE 1040 untreated | 172.0 | 202.0 |  |  |  |  |  |  |  | 
+200.0 | 0.378 | 0.463 | 0.524 | 0.538 |  | SAE 1045 untreated | 207.0 | 215.0 |  |  |  |  |  |  |  | 
+300.0 | 0.382 | 0.471 | 0.534 | 0.55 |  | SAE 1045 WQT | 220.0 | 205.0 |  |  |  |  |  |  |  | 
+Rack | 0.39 | 0.484 | 0.55 | 0.568 |  | SAE 1050 OQT | 241.0 | 223.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 2320 Case Hardened & WQT | 345.0 | 225.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 2345 OQT | 345.0 | 475.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 3115 Case Hardened & OQT | 255.0 | 212.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 3145 OQT | 365.0 | 475.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 3245 OQT | 448.0 | 475.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 4340 OQT | 448.0 | 475.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 4640 OQT | 379.0 | 475.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 6145 OQT | 465.0 | 475.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 43 Manganese Bronze | 138.0 | 100.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 62 Gun Metal | 69.0 | 80.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 65 Phosphor Bronze | 82.0 | 100.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | SAE 68 Aluminum Bronze | 152.0 | 180.0 |  |  |  |  |  |  |  | 
+ |  |  |  |  |  | Bakelite / Micarta / Celeron | 55.0 | - |  |  |  |  |  |  |  | 

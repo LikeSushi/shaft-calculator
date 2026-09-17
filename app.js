@@ -46,6 +46,31 @@ const ISO_6200_BEARINGS = [
     { designation: "6212", bore_mm: 60, outer_mm: 110, width_mm: 22, c_dynamic_n: 52000, c0_static_n: 36000 }
 ];
 
+// Lewis Form Factor Y Table (20 deg Full Depth)
+const LEWIS_Y_TABLE_20_FD = {
+    10: 0.201, 11: 0.226, 12: 0.245, 13: 0.264, 14: 0.276, 15: 0.289, 16: 0.295, 17: 0.302,
+    18: 0.308, 19: 0.314, 20: 0.320, 25: 0.340, 30: 0.358, 35: 0.373, 40: 0.389, 50: 0.408,
+    56: 0.415, 60: 0.421, 100: 0.446, 150: 0.458, 200: 0.463
+};
+
+function lookupLewisY(teethCount) {
+    const z = Math.round(teethCount);
+    if (LEWIS_Y_TABLE_20_FD[z]) return LEWIS_Y_TABLE_20_FD[z];
+
+    const keys = Object.keys(LEWIS_Y_TABLE_20_FD).map(Number).sort((a,b)=>a-b);
+    if (z < keys[0]) return LEWIS_Y_TABLE_20_FD[keys[0]];
+    if (z > keys[keys.length - 1]) return LEWIS_Y_TABLE_20_FD[keys[keys.length - 1]];
+
+    for (let i = 0; i < keys.length - 1; i++) {
+        if (z >= keys[i] && z <= keys[i+1]) {
+            const k1 = keys[i], k2 = keys[i+1];
+            const y1 = LEWIS_Y_TABLE_20_FD[k1], y2 = LEWIS_Y_TABLE_20_FD[k2];
+            return y1 + ((y2 - y1) * (z - k1)) / (k2 - k1);
+        }
+    }
+    return 0.320;
+}
+
 // State for Multi-Load V-M Diagram Engine
 let vmLoadsList = [
     { w_n: 800, dir: 'downward', x_mm: 50 }
@@ -122,27 +147,32 @@ const bearingOutputs = {
     tbody: document.getElementById('tbodyIsoBearings')
 };
 
-// DOM Elements - Gear Tab
+// DOM Elements - Gear Tab (Excel Full Model)
 const gearInputs = {
     powerW: document.getElementById('gearPowerW'),
     rpm: document.getElementById('gearRpm'),
-    module: document.getElementById('gearModule'),
-    faceWidth: document.getElementById('gearFaceWidth'),
+    gearRatio: document.getElementById('gearRatio'),
     teethZ1: document.getElementById('gearTeethZ1'),
-    teethZ2: document.getElementById('gearTeethZ2'),
-    pressureAngle: document.getElementById('gearPressureAngle'),
-    allowableStress: document.getElementById('gearAllowableStress')
+    module: document.getElementById('gearModule'),
+    faceRatio: document.getElementById('gearFaceRatio'),
+    kf: document.getElementById('gearKf'),
+    wearK: document.getElementById('gearWearK'),
+    sigmaP: document.getElementById('gearSigmaP'),
+    sigmaG: document.getElementById('gearSigmaG'),
+    profileQuality: document.getElementById('gearProfileQuality')
 };
 
 const gearOutputs = {
-    d1: document.getElementById('resGearD1'),
-    d2: document.getElementById('resGearD2'),
-    centerDist: document.getElementById('resGearCenterDist'),
-    wt: document.getElementById('resGearWt'),
-    wr: document.getElementById('resGearWr'),
-    wtAllow: document.getElementById('resGearWtAllow'),
-    lewisFos: document.getElementById('resGearLewisFos'),
-    verdictBadge: document.getElementById('gearVerdictBadge')
+    dpDg: document.getElementById('resGearDpDg'),
+    bc: document.getElementById('resGearBC'),
+    vFt: document.getElementById('resGearVFt'),
+    kvFd: document.getElementById('resGearKvFd'),
+    fb: document.getElementById('resGearFb'),
+    bendingStatus: document.getElementById('resGearBendingStatus'),
+    fw: document.getElementById('resGearFw'),
+    wearStatus: document.getElementById('resGearWearStatus'),
+    verdictBadge: document.getElementById('gearVerdictBadge'),
+    tbodyTrial: document.getElementById('tbodyModuleMatrix')
 };
 
 const btnSyncMoment = document.getElementById('btnSyncMoment');
@@ -153,29 +183,46 @@ const vmLoadsTbody = document.getElementById('vmLoadsTbody');
 const shaftCanvas = document.getElementById('shaftCanvas');
 const sfdCanvas = document.getElementById('sfdCanvas');
 const bmdCanvas = document.getElementById('bmdCanvas');
-const gearCanvas = document.getElementById('gearCanvas');
 
 const ctxShaft = shaftCanvas.getContext('2d');
 const ctxSFD = sfdCanvas.getContext('2d');
 const ctxBMD = bmdCanvas.getContext('2d');
-const ctxGear = gearCanvas ? gearCanvas.getContext('2d') : null;
 
 let lastCalculatedMmaxNm = 20.0;
 
-// Top Tab Switcher Logic
-document.querySelectorAll('.tab-btn').forEach(btn => {
+// Function to strictly switch tabs (1 Tab = 1 Dedicated Function)
+function switchTab(targetTabId, clickedBtn) {
+    document.querySelectorAll('.mode-tab-btn, .tab-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.backgroundColor = '#f1f5f9';
+        b.style.color = '#334155';
+    });
+    if (clickedBtn) {
+        clickedBtn.classList.add('active');
+        clickedBtn.style.backgroundColor = '#1e3a8a';
+        clickedBtn.style.color = '#ffffff';
+    }
+
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        if (panel.id === targetTabId) {
+            panel.classList.add('active');
+            panel.style.setProperty('display', 'block', 'important');
+        } else {
+            panel.classList.remove('active');
+            panel.style.setProperty('display', 'none', 'important');
+        }
+    });
+
+    renderKaTeXMath();
+    if (targetTabId === 'tabGear') calculateGear();
+    if (targetTabId === 'tabBearing') calculateBearing();
+    if (targetTabId === 'tabShaft') calculate();
+}
+
+document.querySelectorAll('.mode-tab-btn, .tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const targetTab = e.currentTarget.getAttribute('data-tab');
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-
-        e.currentTarget.classList.add('active');
-        document.getElementById(targetTab).classList.add('active');
-
-        // Re-render KaTeX Math & Canvases on tab switch
-        renderKaTeXMath();
-        if (targetTab === 'tabGear') calculateGear();
-        if (targetTab === 'tabBearing') calculateBearing();
+        switchTab(targetTab, e.currentTarget);
     });
 });
 
@@ -570,7 +617,6 @@ function calculate() {
     updateVmDiagram(L_mm);
     drawShaftVisualizer(d_iso, L_mm, hasKeyway, T_nm, F_axial, isCompressive);
 
-    // Auto-sync calculated shaft diameter & RPM to Bearing Tab
     if (bearingInputs.shaftDia) bearingInputs.shaftDia.value = d_iso;
     if (bearingInputs.rpm) bearingInputs.rpm.value = N;
 }
@@ -585,7 +631,6 @@ function calculateBearing() {
     const cRating = parseFloat(bearingInputs.cRating.value) || 6800;
     const vFactor = parseFloat(bearingInputs.vFactor.value) || 1.0;
 
-    // Equivalent Radial Load P = X * V * Fr + Y * Fa
     const x = 0.56, y = 1.5;
     const pEq = fa === 0 ? vFactor * fr : Math.max((x * vFactor * fr) + (y * fa), fr);
     const pEqFinal = Math.max(pEq, 1.0);
@@ -600,10 +645,8 @@ function calculateBearing() {
     bearingOutputs.l10Hours.innerText = `${Math.round(l10Hours).toLocaleString()} ชั่วโมง`;
     bearingOutputs.years.innerText = `${years.toFixed(1)} ปี (24/7)`;
 
-    // Render Recommended ISO 62xx Bearing Table
     bearingOutputs.tbody.innerHTML = '';
     ISO_6200_BEARINGS.forEach(b => {
-        const isSelected = b.bore_mm >= d && (!bearingOutputs.selectedDesignation || bearingOutputs.selectedDesignation === b.designation);
         const tr = document.createElement('tr');
         if (b.bore_mm === d || (b.bore_mm > d && !bearingOutputs.foundMatch)) {
             tr.className = 'highlight-row';
@@ -633,57 +676,99 @@ function calculateBearing() {
     });
 }
 
-// Gear Calculation Engine (Tab 3)
+// Full Excel Model Gear Calculation Engine (Tab 3)
 function calculateGear() {
-    const P = parseFloat(gearInputs.powerW.value) || 150;
-    const N1 = parseFloat(gearInputs.rpm.value) || 60;
-    const m = parseFloat(gearInputs.module.value) || 2.0;
-    const b = parseFloat(gearInputs.faceWidth.value) || 20;
-    const z1 = parseInt(gearInputs.teethZ1.value) || 20;
-    const z2 = parseInt(gearInputs.teethZ2.value) || 40;
-    const phiDeg = parseFloat(gearInputs.pressureAngle.value) || 20;
-    const sigmaB = parseFloat(gearInputs.allowableStress.value) || 140;
+    const P = parseFloat(gearInputs.powerW.value) || 2000;
+    const N1 = parseFloat(gearInputs.rpm.value) || 690;
+    const mw = parseFloat(gearInputs.gearRatio.value) || 3.5;
+    const Np = parseInt(gearInputs.teethZ1.value) || 16;
+    const m = parseFloat(gearInputs.module.value) || 6.0;
+    const kb = parseFloat(gearInputs.faceRatio.value) || 10.0;
+    const kf = parseFloat(gearInputs.kf.value) || 1.5;
+    const wearK = parseFloat(gearInputs.wearK.value) || 1.182;
+    const sigmaP = parseFloat(gearInputs.sigmaP.value) || 103;
+    const sigmaG = parseFloat(gearInputs.sigmaG.value) || 82;
+    const profileQuality = gearInputs.profileQuality.value;
 
-    const d1 = m * z1;
-    const d2 = m * z2;
-    const centerDist = (d1 + d2) / 2.0;
+    const Ng = Math.round(Np * mw);
+    const dp = m * Np;
+    const dg = m * Ng;
+    const b = kb * m;
+    const Ccenter = (dp + dg) / 2.0;
 
-    const omega1 = (2 * Math.PI * N1) / 60.0;
-    const T1_nm = P / omega1;
-    const wt = (2000.0 * T1_nm) / d1;
-    const wr = wt * Math.tan((phiDeg * Math.PI) / 180.0);
+    const V = (Math.PI * dp * N1) / (60.0 * 1000.0);
+    const Ft = V > 0 ? P / V : 0;
 
-    // Lewis Form Factor y
-    let y = 0.104;
-    if (z1 <= 12) y = 0.067;
-    else if (z1 <= 15) y = 0.092;
-    else if (z1 <= 18) y = 0.100;
-    else if (z1 <= 22) y = 0.104;
-    else if (z1 <= 28) y = 0.112;
-    else if (z1 <= 35) y = 0.118;
-    else if (z1 <= 45) y = 0.125;
-    else y = 0.130;
+    let Kv = (3.0 + V) / 3.0;
+    if (profileQuality === 'cut') Kv = (6.0 + V) / 6.0;
+    if (profileQuality === 'precision') Kv = (5.6 + Math.sqrt(V)) / 5.6;
 
-    const wtAllow = sigmaB * b * Math.PI * m * y;
-    const fosLewis = wt > 0 ? wtAllow / wt : 99.0;
+    const Fd = Ft * Kv;
 
-    gearOutputs.d1.innerText = `${d1.toFixed(1)} mm`;
-    gearOutputs.d2.innerText = `${d2.toFixed(1)} mm`;
-    gearOutputs.centerDist.innerText = `${centerDist.toFixed(1)} mm`;
-    gearOutputs.wt.innerText = `${wt.toFixed(1)} N`;
-    gearOutputs.wr.innerText = `${wr.toFixed(1)} N`;
-    gearOutputs.wtAllow.innerText = `${wtAllow.toFixed(1)} N`;
-    gearOutputs.lewisFos.innerText = `FOS = ${fosLewis.toFixed(2)} (${fosLewis >= 1.0 ? 'Pass Safe' : '⚠️ Overstress'})`;
+    const Yp = lookupLewisY(Np);
+    const Yg = lookupLewisY(Ng);
 
-    if (fosLewis >= 1.0) {
+    const Fb_pinion = (sigmaP * b * m * Yp) / kf;
+    const Fb_gear = (sigmaG * b * m * Yg) / kf;
+    const Fb_governing = Math.min(Fb_pinion, Fb_gear);
+
+    const Q = (2.0 * Ng) / (Np + Ng);
+    const Fw = dp * b * Q * wearK;
+
+    const bendingPass = Fb_governing >= Fd;
+    const wearPass = Fw >= Fd;
+    const overallPass = bendingPass && wearPass;
+
+    gearOutputs.dpDg.innerText = `${dp.toFixed(1)} mm / ${dg.toFixed(1)} mm`;
+    gearOutputs.bc.innerText = `b = ${b.toFixed(1)} mm | C = ${Ccenter.toFixed(1)} mm`;
+    gearOutputs.vFt.innerText = `V = ${V.toFixed(2)} m/s | Ft = ${Ft.toFixed(1)} N`;
+    gearOutputs.kvFd.innerText = `Kv = ${Kv.toFixed(2)} | Fd = ${Math.round(Fd).toLocaleString()} N`;
+    gearOutputs.fb.innerText = `Fb = ${Math.round(Fb_governing).toLocaleString()} N`;
+    gearOutputs.bendingStatus.innerHTML = `<span class="status-badge ${bendingPass ? 'pass' : 'warn'}">${bendingPass ? 'PASS: Safe' : 'FAIL: Fracture'}</span>`;
+    gearOutputs.fw.innerText = `Fw = ${Math.round(Fw).toLocaleString()} N`;
+    gearOutputs.wearStatus.innerHTML = `<span class="status-badge ${wearPass ? 'pass' : 'warn'}">${wearPass ? 'PASS: Safe' : 'FAIL: Pitting'}</span>`;
+
+    if (overallPass) {
         gearOutputs.verdictBadge.className = 'verdict-tag verdict-pass';
-        gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-check"></i> GEAR SAFE';
+        gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-check"></i> DESIGN SAFE';
     } else {
         gearOutputs.verdictBadge.className = 'verdict-tag verdict-warn';
-        gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> RESIZE MODULE';
+        gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> UNSAFE DESIGN';
     }
 
-    drawGearMeshVisualizer(d1, d2, centerDist);
+    // Render Module Trial Matrix Table (m = 2.0 to 9.0 mm)
+    gearOutputs.tbodyTrial.innerHTML = '';
+    const trialModules = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
+    trialModules.forEach(mod => {
+        const t_dp = mod * Np;
+        const t_b = kb * mod;
+        const t_V = (Math.PI * t_dp * N1) / 60000.0;
+        const t_Ft = t_V > 0 ? P / t_V : 0;
+        let t_Kv = (3.0 + t_V) / 3.0;
+        const t_Fd = t_Ft * t_Kv;
+
+        const t_Fb_p = (sigmaP * t_b * mod * Yp) / kf;
+        const t_Fb_g = (sigmaG * t_b * mod * Yg) / kf;
+        const t_Fb = Math.min(t_Fb_p, t_Fb_g);
+
+        const t_Fw = t_dp * t_b * Q * wearK;
+        const t_pass = t_Fb >= t_Fd && t_Fw >= t_Fd;
+
+        const tr = document.createElement('tr');
+        if (mod === m) tr.className = 'highlight-row';
+        tr.innerHTML = `
+            <td><strong>m = ${mod.toFixed(1)} mm</strong></td>
+            <td>${t_b.toFixed(0)} mm</td>
+            <td>${t_dp.toFixed(0)} mm</td>
+            <td>${Math.round(t_Fd).toLocaleString()} N</td>
+            <td>${Math.round(t_Fb).toLocaleString()} N</td>
+            <td>${Math.round(t_Fw).toLocaleString()} N</td>
+            <td>
+                <span class="status-badge ${t_pass ? 'pass' : 'warn'}">${t_pass ? 'Safe' : 'Unsafe'}</span>
+            </td>
+        `;
+        gearOutputs.tbodyTrial.appendChild(tr);
+    });
 }
 
 // Render KaTeX Formulas dynamically
@@ -744,62 +829,71 @@ function drawShaftVisualizer(d, L, hasKeyway, T, F, isCompressive) {
     ctxShaft.fillText(`ISO Nominal Diameter d = ${d} mm`, shaftX + shaftWidth / 2, centerY + shaftHeight / 2 + 35);
 }
 
-// Draw 2D Spur Gear Mesh Visualizer
-function drawGearMeshVisualizer(d1, d2, a) {
-    if (!ctxGear) return;
-    const width = gearCanvas.width;
-    const height = gearCanvas.height;
-    ctxGear.clearRect(0, 0, width, height);
+// Preset Handlers (Shaft Tab)
+document.getElementById('btnPresetTable').addEventListener('click', () => {
+    setActiveButton('btnPresetTable');
+    inputs.powerW.value = 150;
+    inputs.rpm.value = 60;
+    inputs.bendingMoment.value = 20;
+    inputs.shaftLength.value = 100;
+    inputs.axialForce.value = 0;
+    inputs.scPreset.value = 'KEYWAY_PROFILE';
+    inputs.ktValue.value = 2.1;
+    inputs.ktsValue.value = 1.8;
+    inputs.materialPreset.value = 'SS400';
+    inputs.yieldStrength.value = 250;
+    inputs.tensileStrength.value = 400;
+    inputs.fos.value = 2.0;
+    inputs.hasKeyway.value = 'true';
+    inputs.loadType.value = 'steady';
+    inputs.cmValue.value = 1.5;
+    inputs.ctValue.value = 1.0;
+    vmLoadsList = [{ w_n: 800, dir: 'downward', x_mm: 50 }];
+    renderVmLoadsTable();
+    calculate();
+});
 
-    const centerY = height / 2;
-    const scale = 360.0 / Math.max(d1 + d2, 1.0);
+document.getElementById('btnPresetEx1').addEventListener('click', () => {
+    setActiveButton('btnPresetEx1');
+    inputs.powerW.value = 6785.8;
+    inputs.rpm.value = 60;
+    inputs.bendingMoment.value = 1798.3;
+    inputs.shaftLength.value = 875;
+    inputs.axialForce.value = 0;
+    inputs.scPreset.value = 'KEYWAY_PROFILE';
+    inputs.ktValue.value = 2.1;
+    inputs.ktsValue.value = 1.8;
+    inputs.materialPreset.value = 'SS400';
+    inputs.yieldStrength.value = 250;
+    inputs.tensileStrength.value = 400;
+    inputs.hasKeyway.value = 'true';
+    inputs.loadType.value = 'steady';
+    inputs.cmValue.value = 1.5;
+    inputs.ctValue.value = 1.0;
+    vmLoadsList = [{ w_n: 8220, dir: 'downward', x_mm: 437.5 }];
+    renderVmLoadsTable();
+    calculate();
+});
 
-    const r1 = (d1 / 2.0) * scale;
-    const r2 = (d2 / 2.0) * scale;
-    const c1x = 140 + r1;
-    const c2x = c1x + r1 + r2;
-
-    // Center Line
-    ctxGear.strokeStyle = '#94a3b8';
-    ctxGear.setLineDash([4, 4]);
-    ctxGear.beginPath();
-    ctxGear.moveTo(50, centerY);
-    ctxGear.lineTo(width - 50, centerY);
-    ctxGear.stroke();
-    ctxGear.setLineDash([]);
-
-    // Pinion Circle (Gear 1)
-    ctxGear.fillStyle = 'rgba(2, 132, 199, 0.15)';
-    ctxGear.strokeStyle = '#0284c7';
-    ctxGear.lineWidth = 2;
-    ctxGear.beginPath();
-    ctxGear.arc(c1x, centerY, r1, 0, Math.PI * 2);
-    ctxGear.fill();
-    ctxGear.stroke();
-
-    // Driven Gear Circle (Gear 2)
-    ctxGear.fillStyle = 'rgba(15, 118, 110, 0.15)';
-    ctxGear.strokeStyle = '#0f766e';
-    ctxGear.lineWidth = 2;
-    ctxGear.beginPath();
-    ctxGear.arc(c2x, centerY, r2, 0, Math.PI * 2);
-    ctxGear.fill();
-    ctxGear.stroke();
-
-    // Mesh Tangent Point
-    ctxGear.fillStyle = '#dc2626';
-    ctxGear.beginPath();
-    ctxGear.arc(c1x + r1, centerY, 5, 0, Math.PI * 2);
-    ctxGear.fill();
-
-    // Labels
-    ctxGear.fillStyle = '#1e3a8a';
-    ctxGear.font = '600 12px Inter, sans-serif';
-    ctxGear.textAlign = 'center';
-    ctxGear.fillText(`Pinion d1 = ${d1.toFixed(1)} mm`, c1x, centerY - r1 - 10);
-    ctxGear.fillText(`Gear d2 = ${d2.toFixed(1)} mm`, c2x, centerY - r2 - 10);
-    ctxGear.fillText(`Center Distance a = ${a.toFixed(1)} mm`, (c1x + c2x) / 2, centerY + Math.max(r1, r2) + 20);
-}
+document.getElementById('btnPresetEx4').addEventListener('click', () => {
+    setActiveButton('btnPresetEx4');
+    inputs.powerW.value = 10;
+    inputs.rpm.value = 1000;
+    inputs.bendingMoment.value = 0.16;
+    inputs.shaftLength.value = 160;
+    inputs.axialForce.value = 0;
+    inputs.scPreset.value = 'SMOOTH';
+    inputs.ktValue.value = 1.0;
+    inputs.ktsValue.value = 1.0;
+    inputs.materialPreset.value = 'SS400';
+    inputs.yieldStrength.value = 250;
+    inputs.tensileStrength.value = 400;
+    inputs.cmValue.value = 1.5;
+    inputs.ctValue.value = 1.0;
+    vmLoadsList = [{ w_n: 4, dir: 'downward', x_mm: 80 }];
+    renderVmLoadsTable();
+    calculate();
+});
 
 // Active Button Utility
 function setActiveButton(btnId) {
@@ -832,16 +926,27 @@ Object.values(gearInputs).forEach(input => {
     }
 });
 
-// Initial Run on Page Load
+// Sync Peak Bending Moment (Mmax) to Main Calculation
+if (btnSyncMoment) {
+    btnSyncMoment.addEventListener('click', () => {
+        inputs.bendingMoment.value = lastCalculatedMmaxNm.toFixed(2);
+        calculate();
+    });
+}
+
+// Initial Run on Page Load - Strictly activate Tab 1 only
 window.addEventListener('DOMContentLoaded', () => {
     renderVmLoadsTable();
     calculate();
     calculateBearing();
     calculateGear();
-    renderKaTeXMath();
+
+    const initialBtn = document.getElementById('btnTabShaft');
+    switchTab('tabShaft', initialBtn);
 });
 
 renderVmLoadsTable();
 calculate();
 calculateBearing();
 calculateGear();
+switchTab('tabShaft', document.getElementById('btnTabShaft'));

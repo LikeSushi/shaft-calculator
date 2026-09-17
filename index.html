@@ -31,23 +31,28 @@
                 <span><i class="fa-solid fa-microscope"></i> Methodology: ASME Shaft, ISO 62xx Bearings & Lewis Gear Strength</span>
                 <span><i class="fa-solid fa-building-columns"></i> Field Robotics Institute (FIBO)</span>
             </div>
-
-            <!-- Top Tab Navigation Bar -->
-            <nav class="tab-navigation">
-                <button class="tab-btn active" id="btnTabShaft" data-tab="tabShaft">
-                    <i class="fa-solid fa-compass-drafting"></i> 1. Shaft Design & V-M Diagrams
-                </button>
-                <button class="tab-btn" id="btnTabBearing" data-tab="tabBearing">
-                    <i class="fa-solid fa-circle-dot"></i> 2. Bearing Life & Selection
-                </button>
-                <button class="tab-btn" id="btnTabGear" data-tab="tabGear">
-                    <i class="fa-solid fa-gear"></i> 3. Gear Design & Lewis Strength
-                </button>
-            </nav>
         </header>
 
-        <!-- TAB 1: SHAFT DESIGN PANEL -->
-        <div class="tab-panel active" id="tabShaft">
+        <!-- HIGH-VISIBILITY STICKY MODE SELECTOR TAB BAR -->
+        <div class="mode-selector-container mb-4">
+            <div class="mode-selector-header">
+                <i class="fa-solid fa-layer-group"></i> <strong>เลือกโหมดคำนวณแยก 1 Function ต่อ 1 Tab (SELECT DESIGN MODULE):</strong>
+            </div>
+            <nav class="mode-tab-bar">
+                <button class="mode-tab-btn tab-btn active" id="btnTabShaft" data-tab="tabShaft">
+                    <i class="fa-solid fa-compass-drafting"></i> 1. Shaft Sizing & V-M Diagram (คำนวณเพลา)
+                </button>
+                <button class="mode-tab-btn tab-btn" id="btnTabBearing" data-tab="tabBearing">
+                    <i class="fa-solid fa-circle-dot"></i> 2. Bearing Life & Selection (คำนวณลูกปืน)
+                </button>
+                <button class="mode-tab-btn tab-btn" id="btnTabGear" data-tab="tabGear">
+                    <i class="fa-solid fa-gear"></i> 3. Gear Design & Lewis Strength (คำนวณเฟือง)
+                </button>
+            </nav>
+        </div>
+
+        <!-- TAB 1: SHAFT DESIGN PANEL ONLY -->
+        <div class="tab-panel active" id="tabShaft" style="display: block;">
             <div class="preset-toolbar mb-3">
                 <span class="toolbar-label"><i class="fa-solid fa-bookmark"></i> Standard Test Cases:</span>
                 <button class="btn-scientific active" id="btnPresetTable">โจทย์ตารางอาจารย์ (150W)</button>
@@ -431,8 +436,8 @@
             </main>
         </div>
 
-        <!-- TAB 2: BEARING LIFE & SELECTION PANEL -->
-        <div class="tab-panel" id="tabBearing">
+        <!-- TAB 2: BEARING LIFE & SELECTION PANEL ONLY -->
+        <div class="tab-panel" id="tabBearing" style="display: none;">
             <main class="scientific-grid">
                 <!-- Left Input Column -->
                 <section class="paper-card input-section">
@@ -580,83 +585,101 @@
             </main>
         </div>
 
-        <!-- TAB 3: GEAR DESIGN & LEWIS STRENGTH PANEL -->
-        <div class="tab-panel" id="tabGear">
+        <!-- TAB 3: GEAR DESIGN & SELECTION PANEL ONLY (EXCEL COMPREHENSIVE ENGINE) -->
+        <div class="tab-panel" id="tabGear" style="display: none;">
             <main class="scientific-grid">
                 <!-- Left Input Column -->
                 <section class="paper-card input-section">
                     <div class="card-title">
-                        <i class="fa-solid fa-gear"></i> I. Spur Gear Design Inputs (Week 06 & 07)
+                        <i class="fa-solid fa-gear"></i> I. Full Gear Design Parameters (Excel Model)
                     </div>
 
                     <fieldset class="paper-fieldset">
-                        <legend><i class="fa-solid fa-bolt"></i> Power & Speed</legend>
-                        <div class="form-row-2">
+                        <legend><i class="fa-solid fa-bolt"></i> Power, Speed & Gear Ratio</legend>
+                        <div class="form-row-2 mb-2">
                             <div class="field-group">
-                                <label for="gearPowerW">Motor Power (P)</label>
+                                <label for="gearPowerW">Power (W<sub>p</sub>)</label>
                                 <div class="unit-wrapper">
-                                    <input type="number" id="gearPowerW" value="150" step="any">
+                                    <input type="number" id="gearPowerW" value="2000" step="any">
                                     <span class="unit-tag">W</span>
                                 </div>
                             </div>
                             <div class="field-group">
-                                <label for="gearRpm">Pinion Speed (N<sub>1</sub>)</label>
+                                <label for="gearRpm">Pinion Speed (n<sub>p</sub>)</label>
                                 <div class="unit-wrapper">
-                                    <input type="number" id="gearRpm" value="60" step="any">
-                                    <span class="unit-tag">RPM</span>
+                                    <input type="number" id="gearRpm" value="690" step="any">
+                                    <span class="unit-tag">rpm</span>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="gearRatio">Gear Ratio (m<sub>w</sub>)</label>
+                                <input type="number" id="gearRatio" value="3.5" step="0.1">
+                            </div>
+                            <div class="field-group">
+                                <label for="gearTeethZ1">Pinion Teeth (N<sub>p</sub>)</label>
+                                <input type="number" id="gearTeethZ1" value="16" step="1">
                             </div>
                         </div>
                     </fieldset>
 
                     <fieldset class="paper-fieldset">
-                        <legend><i class="fa-solid fa-gears"></i> Module & Tooth Geometry</legend>
+                        <legend><i class="fa-solid fa-gears"></i> Module & Geometry</legend>
                         <div class="form-row-2 mb-2">
                             <div class="field-group">
                                 <label for="gearModule">Module (m)</label>
                                 <div class="unit-wrapper">
-                                    <input type="number" id="gearModule" value="2.0" step="0.25">
+                                    <input type="number" id="gearModule" value="6.0" step="0.5">
                                     <span class="unit-tag">mm</span>
                                 </div>
                             </div>
                             <div class="field-group">
-                                <label for="gearFaceWidth">Face Width (b)</label>
+                                <label for="gearFaceRatio">Face Ratio (k<sub>b</sub> = b/m)</label>
+                                <input type="number" id="gearFaceRatio" value="10.0" step="1.0">
+                            </div>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="gearKf">Stress Conc. K<sub>f</sub></label>
+                                <input type="number" id="gearKf" value="1.5" step="0.1">
+                            </div>
+                            <div class="field-group">
+                                <label for="gearWearK">Wear Factor K</label>
                                 <div class="unit-wrapper">
-                                    <input type="number" id="gearFaceWidth" value="20" step="any">
-                                    <span class="unit-tag">mm</span>
+                                    <input type="number" id="gearWearK" value="1.182" step="0.001">
+                                    <span class="unit-tag">N/mm²</span>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="form-row-2 mb-2">
-                            <div class="field-group">
-                                <label for="gearTeethZ1">Pinion Teeth (Z<sub>1</sub>)</label>
-                                <input type="number" id="gearTeethZ1" value="20" step="1">
-                            </div>
-                            <div class="field-group">
-                                <label for="gearTeethZ2">Gear Teeth (Z<sub>2</sub>)</label>
-                                <input type="number" id="gearTeethZ2" value="40" step="1">
-                            </div>
-                        </div>
-
-                        <div class="field-group">
-                            <label for="gearPressureAngle">Pressure Angle (&phi;)</label>
-                            <select id="gearPressureAngle">
-                                <option value="20" selected>20&deg; Standard Full Depth</option>
-                                <option value="14.5">14.5&deg; Legacy Full Depth</option>
-                                <option value="25">25&deg; High Capacity Stub</option>
-                            </select>
                         </div>
                     </fieldset>
 
                     <fieldset class="paper-fieldset">
-                        <legend><i class="fa-solid fa-shield"></i> Material Bending Stress (&sigma;<sub>b</sub>)</legend>
-                        <div class="field-group">
-                            <label for="gearAllowableStress">Allowable Bending Stress (&sigma;<sub>b</sub>)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="gearAllowableStress" value="140" step="any">
-                                <span class="unit-tag">MPa</span>
+                        <legend><i class="fa-solid fa-shield"></i> Material Strength ($\sigma_p$, $\sigma_g$)</legend>
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="gearSigmaP">Pinion $\sigma_p$</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="gearSigmaP" value="103" step="any">
+                                    <span class="unit-tag">N/mm²</span>
+                                </div>
                             </div>
+                            <div class="field-group">
+                                <label for="gearSigmaG">Gear $\sigma_g$</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="gearSigmaG" value="82" step="any">
+                                    <span class="unit-tag">N/mm²</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-group">
+                            <label for="gearProfileQuality">Profile Quality (for K<sub>v</sub>)</label>
+                            <select id="gearProfileQuality">
+                                <option value="ordinary" selected>Ordinary Cast Gear (Kv = (3+V)/3)</option>
+                                <option value="cut">Cut / Machine Cut (Kv = (6+V)/6)</option>
+                                <option value="precision">Precision Ground (Kv = (5.6+√V)/5.6)</option>
+                            </select>
                         </div>
                     </fieldset>
                 </section>
@@ -664,75 +687,85 @@
                 <!-- Right Results Column -->
                 <section class="paper-card output-section">
                     <div class="card-title">
-                        <i class="fa-solid fa-chart-line"></i> II. Spur Gear Geometry & Lewis Bending Verification
-                        <span id="gearVerdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> GEAR SAFE</span>
+                        <i class="fa-solid fa-chart-line"></i> II. Gear Verification & Module Trial Matrix
+                        <span id="gearVerdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> DESIGN SAFE</span>
                     </div>
 
                     <table class="report-table">
                         <thead>
                             <tr>
                                 <th>Parameter</th>
-                                <th>Equation</th>
+                                <th>Formula / Method</th>
                                 <th>Calculated Value</th>
-                                <th>Status</th>
+                                <th>Evaluation</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="highlight-row">
-                                <td><strong>Pitch Diameter (d<sub>1</sub>)</strong></td>
-                                <td>\( d_1 = m \cdot Z_1 \)</td>
-                                <td><strong id="resGearD1" class="primary-val">40 mm</strong></td>
-                                <td>Pinion Size</td>
+                                <td><strong>Pitch Diameters (d<sub>p</sub> / d<sub>g</sub>)</strong></td>
+                                <td>\( d_p = m N_p, d_g = m N_g \)</td>
+                                <td><strong id="resGearDpDg" class="primary-val">96 mm / 336 mm</strong></td>
+                                <td>N<sub>g</sub> = 56 teeth</td>
                             </tr>
                             <tr>
-                                <td>Driven Gear Diameter (d<sub>2</sub>)</td>
-                                <td>\( d_2 = m \cdot Z_2 \)</td>
-                                <td id="resGearD2">80 mm</td>
-                                <td>Gear Size</td>
-                            </tr>
-                            <tr>
-                                <td>Center Distance (a)</td>
-                                <td>\( a = \frac{d_1 + d_2}{2} \)</td>
-                                <td id="resGearCenterDist">60 mm</td>
+                                <td>Face Width (b) & Center Dist (C)</td>
+                                <td>\( b = k_b m, C = (d_p + d_g)/2 \)</td>
+                                <td id="resGearBC">b = 60 mm | C = 216 mm</td>
                                 <td>Center Distance</td>
                             </tr>
                             <tr>
-                                <td>Tangential Force (W<sub>T</sub>)</td>
-                                <td>\( W_T = \frac{2000 \cdot T}{d_1} \)</td>
-                                <td id="resGearWt">1,193.7 N</td>
-                                <td>Tangential Force</td>
+                                <td>Pitch Velocity (V) & Force (F<sub>t</sub>)</td>
+                                <td>\( V = \frac{\pi d_p n_p}{60000}, F_t = \frac{P}{V} \)</td>
+                                <td id="resGearVFt">V = 3.47 m/s | F<sub>t</sub> = 576.6 N</td>
+                                <td>Velocity & Tangential</td>
                             </tr>
                             <tr>
-                                <td>Radial Force (W<sub>R</sub>)</td>
-                                <td>\( W_R = W_T \tan \phi \)</td>
-                                <td id="resGearWr">434.5 N</td>
-                                <td>Radial Force</td>
+                                <td>Dynamic Factor (K<sub>v</sub>) & Load (F<sub>d</sub>)</td>
+                                <td>\( K_v = \frac{3+V}{3}, F_d = F_t \cdot K_v \)</td>
+                                <td id="resGearKvFd">K<sub>v</sub> = 2.16 | F<sub>d</sub> = 1,243.3 N</td>
+                                <td>Dynamic Load</td>
                             </tr>
                             <tr>
-                                <td>Lewis Allowable Force (W<sub>T_allow</sub>)</td>
-                                <td>\( W_{T\_allow} = \sigma_b \cdot b \cdot \pi m \cdot y \)</td>
-                                <td id="resGearWtAllow">1,829.7 N</td>
-                                <td id="resGearLewisFos">FOS = 1.53 (Safe)</td>
+                                <td>Bending Strength (F<sub>b</sub>)</td>
+                                <td>\( F_b = \frac{\sigma \cdot b \cdot m \cdot Y}{K_f} \)</td>
+                                <td id="resGearFb">F<sub>b</sub> = 6,303.6 N</td>
+                                <td id="resGearBendingStatus"><span class="status-badge pass">PASS: Safe</span></td>
+                            </tr>
+                            <tr>
+                                <td>Allowable Wear Load (F<sub>w</sub>)</td>
+                                <td>\( F_w = d_p \cdot b \cdot Q \cdot K \)</td>
+                                <td id="resGearFw">F<sub>w</sub> = 10,590.7 N</td>
+                                <td id="resGearWearStatus"><span class="status-badge pass">PASS: Safe</span></td>
                             </tr>
                         </tbody>
                     </table>
 
                     <div class="latex-panel">
-                        <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Gear Lewis Bending Equation</div>
+                        <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Excel Gear Equations</div>
                         <div class="latex-grid">
                             <div class="latex-box">
-                                <span class="latex-label">1. Lewis Bending Strength Formula</span>
-                                <div class="latex-math">$$W_{T\_allow} = \sigma_b \cdot b \cdot \pi \cdot m \cdot y \qquad \text{where } y \text{ is Lewis Form Factor}$$</div>
+                                <span class="latex-label">1. Dynamic Load & Bending Strength</span>
+                                <div class="latex-math">$$F_d = F_t \cdot K_v, \qquad F_b = \frac{\sigma \cdot b \cdot m \cdot Y}{K_f}, \qquad F_w = d_p \cdot b \cdot Q \cdot K$$</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="diagram-box">
-                        <div class="diagram-caption"><i class="fa-solid fa-circle-nodes"></i> Figure 3: 2D Spur Gear Pitch Mesh Diagram</div>
-                        <div class="canvas-paper">
-                            <canvas id="gearCanvas" width="600" height="220"></canvas>
-                        </div>
-                    </div>
+                    <!-- MODULE TRIAL MATRIX TABLE (EXCEL SHEET 2) -->
+                    <div class="section-subtitle"><i class="fa-solid fa-table"></i> Module Trial Matrix Table (m = 2.0 to 9.0 mm)</div>
+                    <table class="report-table compact" id="tableModuleMatrix">
+                        <thead>
+                            <tr>
+                                <th>Module m</th>
+                                <th>Width b</th>
+                                <th>d<sub>p</sub></th>
+                                <th>Dynamic F<sub>d</sub></th>
+                                <th>Bending F<sub>b</sub></th>
+                                <th>Wear F<sub>w</sub></th>
+                                <th>Verdict</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyModuleMatrix"></tbody>
+                    </table>
                 </section>
             </main>
         </div>

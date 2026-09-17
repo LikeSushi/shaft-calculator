@@ -54,8 +54,8 @@ body {
     background: var(--paper-bg);
     border: 1px solid var(--paper-border-dark);
     border-radius: 12px;
-    padding: 24px 32px 16px 32px;
-    margin-bottom: 24px;
+    padding: 24px 32px;
+    margin-bottom: 20px;
     box-shadow: var(--shadow-paper);
     border-top: 5px solid var(--academic-navy);
 }
@@ -91,56 +91,95 @@ body {
     gap: 20px;
     font-size: 13px;
     color: var(--text-sub);
-    margin-bottom: 18px;
 }
 
-/* Top Tab Navigation Bar */
-.tab-navigation {
-    display: flex;
-    gap: 8px;
-    border-bottom: 2px solid var(--paper-border);
-    margin-top: 10px;
+/* HIGH-VISIBILITY STICKY MODE SELECTOR CONTAINER */
+.mode-selector-container {
+    position: sticky;
+    top: 12px;
+    z-index: 999;
+    background: #ffffff;
+    border: 2px solid var(--academic-navy);
+    border-radius: 10px;
+    padding: 14px 20px;
+    box-shadow: 0 8px 24px rgba(30, 58, 138, 0.12);
 }
 
-.tab-btn {
-    padding: 12px 22px;
-    background: var(--bg-page);
-    border: 1px solid var(--paper-border-dark);
-    border-bottom: none;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    font-family: var(--font-body);
+.mode-selector-header {
     font-size: 13px;
-    font-weight: 600;
-    color: var(--text-sub);
+    font-weight: 700;
+    color: var(--academic-navy);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+}
+
+.mode-tab-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 860px) {
+    .mode-tab-bar {
+        grid-template-columns: 1fr;
+    }
+}
+
+.mode-tab-btn, .tab-btn {
+    padding: 14px 18px;
+    background: #f1f5f9;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
-.tab-btn:hover {
+.mode-tab-btn:hover, .tab-btn:hover {
     background: #e2e8f0;
+    border-color: var(--academic-blue);
     color: var(--academic-navy);
+    transform: translateY(-1px);
 }
 
-.tab-btn.active {
-    background: var(--paper-bg);
-    color: var(--academic-navy);
-    border-color: var(--academic-navy);
-    border-bottom: 3px solid var(--paper-bg);
-    margin-bottom: -2px;
-    font-weight: 700;
+.mode-tab-btn.active, .tab-btn.active {
+    background: var(--academic-navy) !important;
+    color: #ffffff !important;
+    border-color: var(--academic-navy) !important;
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3) !important;
+    position: relative;
 }
 
-/* Tab Panels Visibility */
+.mode-tab-btn.active::after, .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 4px;
+    background: var(--academic-blue);
+    border-radius: 2px;
+}
+
+/* Strictly Enforce Tab Panel Isolation (1 Tab = 1 Function) */
 .tab-panel {
-    display: none;
+    display: none !important;
 }
 
 .tab-panel.active {
-    display: block;
+    display: block !important;
 }
 
 .preset-toolbar {

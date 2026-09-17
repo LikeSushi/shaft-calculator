@@ -4,44 +4,43 @@ from gear_cal import GearCalculator
 
 class TestGearCalculatorSuite(unittest.TestCase):
 
-    def test_01_spur_gear_geometry(self):
+    def test_01_excel_exact_benchmark(self):
         """
-        [Test Case 1] คำนวณเรขาคณิตเฟืองตรง (Spur Gear Geometry)
-        - m = 2.0 mm, Z1 = 20 (Pinion), Z2 = 40 (Gear)
-        - d1 = 2.0 * 20 = 40 mm, d2 = 2.0 * 40 = 80 mm
-        - Center Distance a = (40 + 80) / 2 = 60 mm
-        - Circular Pitch p = pi * 2.0 ≈ 6.283 mm
-        - Gear Ratio i = 40 / 20 = 2.0
+        [Test Case 1] ทดสอบเปรียบเทียบกับค่าในไฟล์ Excel "FRA232 Gear Design & Selection Calculations.xlsx"
+        Inputs: P = 2000 W, np = 690 rpm, mw = 3.5, Np = 16, m = 6.0 mm, kb = 10.0,
+                sigma_p = 103.0 N/mm^2, sigma_g = 82.0 N/mm^2, Kf = 1.5, K_wear = 1.182 N/mm^2
         """
-        geom = GearCalculator.calculate_spur_gear_geometry(module=2.0, teeth_pinion=20, teeth_gear=40)
-        self.assertEqual(geom["d1_pinion_mm"], 40.0)
-        self.assertEqual(geom["d2_gear_mm"], 80.0)
-        self.assertEqual(geom["center_distance_mm"], 60.0)
-        self.assertAlmostEqual(geom["circular_pitch_mm"], 6.28318, places=4)
-        self.assertEqual(geom["gear_ratio"], 2.0)
+        res = GearCalculator.calculate_full_gear_design(
+            power_w=2000.0, rpm_pinion=690.0, gear_ratio=3.5, teeth_pinion=16,
+            module=6.0, face_width_ratio=10.0, sigma_p=103.0, sigma_g=82.0, kf=1.5, wear_k=1.182
+        )
 
-    def test_02_gear_forces(self):
-        """
-        [Test Case 2] คำนวณแรงที่ฟันเฟือง (Tangential WT & Radial WR)
-        - Power = 150 W, N = 60 RPM -> T ≈ 23.8732 N-m
-        - d1 = 40 mm
-        - WT = 2000 * 23.8732 / 40 ≈ 1193.66 N
-        - WR = WT * tan(20 deg) ≈ 1193.66 * 0.36397 = 434.46 N
-        """
-        forces = GearCalculator.calculate_gear_forces(power_w=150.0, rpm=60.0, pitch_diameter_mm=40.0, pressure_angle_deg=20.0)
-        self.assertAlmostEqual(forces["torque_nm"], 23.8732, places=3)
-        self.assertAlmostEqual(forces["wt_tangential_n"], 1193.66, places=1)
-        self.assertAlmostEqual(forces["wr_radial_n"], 434.46, places=1)
+        self.assertEqual(res["teeth_gear"], 56)
+        self.assertEqual(res["dp_pinion_mm"], 96.0)
+        self.assertEqual(res["dg_gear_mm"], 336.0)
+        self.assertEqual(res["face_width_mm"], 60.0)
+        self.assertEqual(res["center_distance_mm"], 216.0)
+        self.assertAlmostEqual(res["velocity_m_s"], 3.4683, places=3)
+        self.assertAlmostEqual(res["tangential_force_ft_n"], 576.65, places=1)
+        self.assertAlmostEqual(res["velocity_factor_kv"], 2.1561, places=3)
+        self.assertAlmostEqual(res["dynamic_load_fd_n"], 1243.32, places=1)
+        self.assertAlmostEqual(res["wear_q"], 1.5556, places=3)
+        self.assertAlmostEqual(res["wear_load_fw_n"], 10590.72, places=1)
+        self.assertTrue(res["overall_pass"])
 
-    def test_03_lewis_bending_strength(self):
+    def test_02_module_trial_matrix(self):
         """
-        [Test Case 3] คำนวณความแข็งแรงสมการลูอิส (Lewis Bending Strength)
-        - m = 2.0 mm, b = 20 mm, Z1 = 20 (y = 0.104), sigma_b = 140 MPa
-        - WT_allow = 140 * 20 * pi * 2.0 * 0.104 ≈ 1829.7 N
+        [Test Case 2] ทดสอบการสร้างตารางทดลองโมดูล (Module Trial Matrix)
+        - m = 2.0 -> Unsafe (Bending & Wear Fail)
+        - m = 6.0 -> Safe (PASS)
         """
-        lewis = GearCalculator.calculate_lewis_bending_strength(module=2.0, face_width_mm=20.0, teeth_pinion=20, allowable_stress_mpa=140.0)
-        self.assertEqual(lewis["lewis_y_factor"], 0.104)
-        self.assertAlmostEqual(lewis["wt_allowable_n"], 1829.7, places=1)
+        matrix = GearCalculator.generate_module_trial_matrix(
+            power_w=2000.0, rpm_pinion=690.0, gear_ratio=3.5, teeth_pinion=16,
+            face_width_ratio=10.0, sigma_p=103.0, sigma_g=82.0, kf=1.5, wear_k=1.182
+        )
+        self.assertEqual(len(matrix), 8)
+        self.assertEqual(matrix[0]["design_verdict"], "Unsafe")
+        self.assertEqual(matrix[4]["design_verdict"], "Safe")
 
 if __name__ == "__main__":
     unittest.main()
