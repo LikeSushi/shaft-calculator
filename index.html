@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Engineering Report: Shaft Sizing & Analysis | FRA232 FIBO</title>
+    <title>Engineering Report: FRA232 Mechanical Design Studio | FIBO</title>
     <!-- Google Fonts: Merriweather for Academic Titles, Inter & Prompt for Data -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,424 +24,718 @@
         <header class="scientific-header">
             <div class="header-top">
                 <div class="academic-badge"><i class="fa-solid fa-graduation-cap"></i> KING MONGKUT'S UNIVERSITY OF TECHNOLOGY THONBURI</div>
-                <div class="doc-id">DOC-ID: FRA232-SHAFT-2026</div>
+                <div class="doc-id">DOC-ID: FRA232-STUDIO-2026</div>
             </div>
-            <h1 class="paper-title">Mechanical Shaft Sizing & Stress Analysis Studio</h1>
+            <h1 class="paper-title">FRA232 Mechanical Structure Design Studio</h1>
             <div class="paper-meta">
-                <span><i class="fa-solid fa-microscope"></i> Methodology: ASME & Modified Goodman Criteria</span>
+                <span><i class="fa-solid fa-microscope"></i> Methodology: ASME Shaft, ISO 62xx Bearings & Lewis Gear Strength</span>
                 <span><i class="fa-solid fa-building-columns"></i> Field Robotics Institute (FIBO)</span>
             </div>
 
-            <div class="preset-toolbar">
+            <!-- Top Tab Navigation Bar -->
+            <nav class="tab-navigation">
+                <button class="tab-btn active" id="btnTabShaft" data-tab="tabShaft">
+                    <i class="fa-solid fa-compass-drafting"></i> 1. Shaft Design & V-M Diagrams
+                </button>
+                <button class="tab-btn" id="btnTabBearing" data-tab="tabBearing">
+                    <i class="fa-solid fa-circle-dot"></i> 2. Bearing Life & Selection
+                </button>
+                <button class="tab-btn" id="btnTabGear" data-tab="tabGear">
+                    <i class="fa-solid fa-gear"></i> 3. Gear Design & Lewis Strength
+                </button>
+            </nav>
+        </header>
+
+        <!-- TAB 1: SHAFT DESIGN PANEL -->
+        <div class="tab-panel active" id="tabShaft">
+            <div class="preset-toolbar mb-3">
                 <span class="toolbar-label"><i class="fa-solid fa-bookmark"></i> Standard Test Cases:</span>
                 <button class="btn-scientific active" id="btnPresetTable">โจทย์ตารางอาจารย์ (150W)</button>
                 <button class="btn-scientific" id="btnPresetEx1">ตัวอย่างที่ 9.1 (ASME)</button>
                 <button class="btn-scientific" id="btnPresetEx4">ตัวอย่างที่ 9.4 (Critical Speed)</button>
             </div>
-        </header>
 
-        <!-- Main Layout Grid -->
-        <main class="scientific-grid">
-            <!-- Left Input Column -->
-            <section class="paper-card input-section">
-                <div class="card-title">
-                    <i class="fa-solid fa-sliders"></i> I. Input Parameters & Design Conditions
-                </div>
-
-                <!-- Power & Motion -->
-                <fieldset class="paper-fieldset">
-                    <legend><i class="fa-solid fa-bolt"></i> Power & Operating Speed</legend>
-                    <div class="form-row-2">
-                        <div class="field-group">
-                            <label for="powerW">Motor Power (P)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="powerW" value="150" step="any">
-                                <span class="unit-tag">W</span>
-                            </div>
-                        </div>
-                        <div class="field-group">
-                            <label for="rpm">Rotational Speed (N)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="rpm" value="60" step="any">
-                                <span class="unit-tag">RPM</span>
-                            </div>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <!-- Loads & Dimensions -->
-                <fieldset class="paper-fieldset">
-                    <legend><i class="fa-solid fa-arrows-up-down-left-right"></i> Applied Loads & Dimensions</legend>
-                    <div class="form-row-2 mb-2">
-                        <div class="field-group">
-                            <label for="bendingMoment">Bending Moment (M)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="bendingMoment" value="20" step="any">
-                                <span class="unit-tag">N-m</span>
-                            </div>
-                        </div>
-                        <div class="field-group">
-                            <label for="shaftLength">Shaft Length (L)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="shaftLength" value="100" step="any">
-                                <span class="unit-tag">mm</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row-2">
-                        <div class="field-group">
-                            <label for="axialForce">Axial Force (F)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="axialForce" value="0" step="any">
-                                <span class="unit-tag">N</span>
-                            </div>
-                        </div>
-                        <div class="field-group">
-                            <label for="forceType">Force Direction</label>
-                            <select id="forceType">
-                                <option value="compressive" selected>Compressive (แรงอัด)</option>
-                                <option value="tensile">Tensile (แรงดึง)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="field-group mt-2">
-                        <label for="endCondition">Bearing Support Boundary Condition</label>
-                        <select id="endCondition">
-                            <option value="SS" selected>Simply Supported (SS: n = 1.00)</option>
-                            <option value="CC">Clamped - Clamped (CC: n = 2.25)</option>
-                            <option value="SC">Simply Supported - Clamped (SC: n = 1.60)</option>
-                            <option value="CF">Clamped - Free (CF: n = 0.25)</option>
-                        </select>
-                    </div>
-                </fieldset>
-
-                <!-- Stress Concentration -->
-                <fieldset class="paper-fieldset">
-                    <legend><i class="fa-solid fa-bullseye"></i> Geometric Stress Concentration (K<sub>t</sub>, K<sub>ts</sub>)</legend>
-                    <div class="field-group mb-2">
-                        <label for="scPreset">Notch Geometry Preset</label>
-                        <select id="scPreset">
-                            <option value="KEYWAY_PROFILE" selected>Profile Keyway (Kt = 2.1, Kts = 1.8)</option>
-                            <option value="SHOULDER_FILLET">Bearing Shoulder Fillet (Kt = 1.7, Kts = 1.5)</option>
-                            <option value="SMOOTH">Smooth Shaft / No Notch (Kt = 1.0, Kts = 1.0)</option>
-                            <option value="SHARP_NOTCH">Sharp Radius Notch (Kt = 2.5, Kts = 2.0)</option>
-                            <option value="CUSTOM">Custom Parameters</option>
-                        </select>
-                    </div>
-                    <div class="form-row-2">
-                        <div class="field-group">
-                            <label for="ktValue">Bending K<sub>t</sub></label>
-                            <input type="number" id="ktValue" value="2.1" step="0.1">
-                        </div>
-                        <div class="field-group">
-                            <label for="ktsValue">Torsion K<sub>ts</sub></label>
-                            <input type="number" id="ktsValue" value="1.8" step="0.1">
-                        </div>
-                    </div>
-                </fieldset>
-
-                <!-- Material Properties & ASME Shock Factors (Cm, Ct Customization) -->
-                <fieldset class="paper-fieldset">
-                    <legend><i class="fa-solid fa-cube"></i> Material & Custom ASME Factors (C<sub>m</sub>, C<sub>t</sub>)</legend>
-                    <div class="field-group mb-2">
-                        <label for="materialPreset">Material Standard Grade</label>
-                        <select id="materialPreset">
-                            <option value="SS400" selected>SS400 / Structural Steel (Sy=250, Sut=400 MPa)</option>
-                            <option value="AISI1020">AISI 1020 Cold Drawn (Sy=290, Sut=380 MPa)</option>
-                            <option value="AISI1045">AISI 1045 Cold Drawn (Sy=310, Sut=570 MPa)</option>
-                            <option value="AISI4140">AISI 4140 Alloy Steel (Sy=415, Sut=655 MPa)</option>
-                            <option value="CUSTOM">Custom Material Properties</option>
-                        </select>
-                    </div>
-
-                    <div class="form-row-2 mb-2">
-                        <div class="field-group">
-                            <label for="yieldStrength">Yield Strength (S<sub>y</sub>)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="yieldStrength" value="250" step="any">
-                                <span class="unit-tag">MPa</span>
-                            </div>
-                        </div>
-                        <div class="field-group">
-                            <label for="tensileStrength">Tensile Strength (S<sub>ut</sub>)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="tensileStrength" value="400" step="any">
-                                <span class="unit-tag">MPa</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-row-2 mb-2">
-                        <div class="field-group">
-                            <label for="fos">Target FOS (n)</label>
-                            <input type="number" id="fos" value="2.0" step="0.1">
-                        </div>
-                        <div class="field-group">
-                            <label for="hasKeyway">Keyway Notch</label>
-                            <select id="hasKeyway">
-                                <option value="true" selected>With Keyway (มีร่องลิ่ม)</option>
-                                <option value="false">No Keyway (ไม่มีร่องลิ่ม)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- ASME Factors Cm & Ct Preset & Custom Inputs -->
-                    <div class="field-group mb-2">
-                        <label for="loadType">ASME Shock & Load Type (Table 9.2)</label>
-                        <select id="loadType">
-                            <option value="steady" selected>Rotating - Steady Load (Cm=1.5, Ct=1.0)</option>
-                            <option value="light_shock">Rotating - Light Shock (Cm=1.75, Ct=1.25)</option>
-                            <option value="heavy_shock">Rotating - Heavy Shock (Cm=2.5, Ct=2.25)</option>
-                            <option value="stat_steady">Stationary - Steady Load (Cm=1.0, Ct=1.0)</option>
-                            <option value="CUSTOM">Custom C<sub>m</sub> & C<sub>t</sub> (กำหนดเอง)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-row-2">
-                        <div class="field-group">
-                            <label for="cmValue">Bending Factor C<sub>m</sub></label>
-                            <input type="number" id="cmValue" value="1.5" step="0.05">
-                        </div>
-                        <div class="field-group">
-                            <label for="ctValue">Torsion Factor C<sub>t</sub></label>
-                            <input type="number" id="ctValue" value="1.0" step="0.05">
-                        </div>
-                    </div>
-                </fieldset>
-            </section>
-
-            <!-- Right Results Column -->
-            <section class="paper-card output-section">
-                <div class="card-title">
-                    <i class="fa-solid fa-square-poll-vertical"></i> II. Scientific Analysis Results
-                    <span id="verdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> DESIGN SAFE</span>
-                </div>
-
-                <!-- Academic Data Table -->
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Parameter</th>
-                            <th>Equation / Method</th>
-                            <th>Calculated Value</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="highlight-row">
-                            <td><strong>Recommended ISO Size</strong></td>
-                            <td>ISO/R 775-1969 Table 9.1</td>
-                            <td><strong id="resIsoDia" class="primary-val">14 mm</strong></td>
-                            <td><span class="status-badge pass">ISO Standard</span></td>
-                        </tr>
-                        <tr>
-                            <td>ASME Calculated Diameter</td>
-                            <td><span id="eqAsme">\( d^3 = \frac{16}{\pi \tau_d} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d}{8} + C_m M\right)^2} \)</span></td>
-                            <td id="resCalcDia">13.64 mm</td>
-                            <td>Calculated Min</td>
-                        </tr>
-                        <tr>
-                            <td>Transmitted Torque (T)</td>
-                            <td><span id="eqTorque">\( T = \frac{P}{\omega} = \frac{P \cdot 60}{2\pi N} \)</span></td>
-                            <td id="resTorque">23.87 N-m</td>
-                            <td id="resTorqueNmm">23,873 N-mm</td>
-                        </tr>
-                        <tr>
-                            <td>Twist Angle (&theta;)</td>
-                            <td><span id="eqTwist">\( \theta = \frac{584 \cdot T \cdot L}{G \cdot d^4} \)</span></td>
-                            <td id="resTwistDeg">0.459&deg;</td>
-                            <td id="resTwistPerM">4.59 deg/m</td>
-                        </tr>
-                        <tr>
-                            <td>Critical Speed (n<sub>c</sub>)</td>
-                            <td><span id="eqCritical">\( n_c = 945 \sqrt{\frac{\sum W_i y_i}{\sum W_i y_i^2}} \)</span></td>
-                            <td id="resCriticalSpeed">4,056 RPM</td>
-                            <td id="resOperatingCheck">N = 60 RPM (Safe)</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- LaTeX Governing Equations Panel -->
-                <div class="latex-panel">
-                    <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Engineering Equations (LaTeX Rendered)</div>
-                    <div class="latex-grid">
-                        <div class="latex-box">
-                            <span class="latex-label">1. ASME Sizing Equation (Full Form with C<sub>m</sub>, C<sub>t</sub>)</span>
-                            <div class="latex-math" id="latexAsme">$$d^3 = \frac{16}{\pi \tau_d (1 - K^4)} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d (1+K^2)}{8} + C_m M\right)^2}$$</div>
-                        </div>
-                        <div class="latex-box">
-                            <span class="latex-label">2. Modified Goodman Fatigue Criteria</span>
-                            <div class="latex-math" id="latexGoodman">$$\frac{1}{n_{goodman}} = \frac{\sigma'_a}{S_e} + \frac{\sigma'_m}{S_{ut}}$$</div>
-                        </div>
-                        <div class="latex-box">
-                            <span class="latex-label">3. Von Mises Maximum Stress</span>
-                            <div class="latex-math" id="latexVonMises">$$\sigma'_{max} = \sqrt{(\sigma'_a)^2 + (\sigma'_m)^2} \quad \Rightarrow \quad n_{yield} = \frac{S_y}{\sigma'_{max}}$$</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Safety Factors Summary Table -->
-                <div class="section-subtitle"><i class="fa-solid fa-shield-halved"></i> Safety Factors & Buckling Evaluation</div>
-                <table class="report-table compact">
-                    <thead>
-                        <tr>
-                            <th>Evaluation Criterion</th>
-                            <th>Allowable / Threshold</th>
-                            <th>Calculated Factor</th>
-                            <th>Evaluation</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>ASME Allowable Shear (&tau;<sub>d</sub>)</td>
-                            <td>Standard Keyway Rule</td>
-                            <td id="resTauD">41.0 MPa</td>
-                            <td>Allowable Shear</td>
-                        </tr>
-                        <tr>
-                            <td>Buckling Factor (&alpha;)</td>
-                            <td>Slenderness Ratio \( L/k = 4L/d \)</td>
-                            <td id="resAlpha">1.00</td>
-                            <td>Slenderness Check</td>
-                        </tr>
-                        <tr>
-                            <td>Von Mises Static Yield FOS</td>
-                            <td>\( n_{yield} = \frac{S_y}{\sigma'_{max}} \)</td>
-                            <td id="resYieldFos">2.34</td>
-                            <td>Yield Safety</td>
-                        </tr>
-                        <tr>
-                            <td>Modified Goodman Fatigue FOS</td>
-                            <td>\( \frac{1}{n} = \frac{\sigma'_a}{S_e} + \frac{\sigma'_m}{S_{ut}} \)</td>
-                            <td id="resGoodmanFos">1.61</td>
-                            <td>Fatigue Safety</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Academic Advice Banner -->
-                <div class="scientific-advice" id="adviceBox">
-                    <i class="fa-solid fa-circle-info"></i>
-                    <span id="adviceText">เพลาขนาด 14 mm ผ่านเกณฑ์ Static Yield (FOS=2.34) แต่หากต้องการ Goodman Fatigue FOS &ge; 2.0 แนะนำให้เลือกขนาดมาตรฐาน 16 mm</span>
-                </div>
-
-                <!-- 2D Shaft Diagram -->
-                <div class="diagram-box mb-4">
-                    <div class="diagram-caption"><i class="fa-solid fa-pen-ruler"></i> Figure 1: 2D Shaft Geometry & Force Vector Diagram</div>
-                    <div class="canvas-paper">
-                        <canvas id="shaftCanvas" width="600" height="220"></canvas>
-                    </div>
-                </div>
-
-                <!-- ADVANCED V-M DIAGRAM CALCULATOR SECTION (VECTOR FORCES & COORDINATE SYSTEM) -->
-                <div class="vm-section-box">
+            <main class="scientific-grid">
+                <!-- Left Input Column -->
+                <section class="paper-card input-section">
                     <div class="card-title">
-                        <i class="fa-solid fa-chart-area"></i> III. Advanced Vector V-M Diagram Engine & Statics Solver
+                        <i class="fa-solid fa-sliders"></i> I. Shaft Design Parameters
                     </div>
 
-                    <!-- 2D Coordinate System Legend Banner -->
-                    <div class="coord-banner mb-3">
-                        <span class="coord-tag"><i class="fa-solid fa-compass"></i> 2D Vector Sign Convention:</span>
-                        <span>\( X \to \) Shaft Axis (mm)</span> • 
-                        <span class="up-val"><i class="fa-solid fa-arrow-up"></i> \( +Y \) Upward Force (N)</span> • 
-                        <span class="down-val"><i class="fa-solid fa-arrow-down"></i> \( -Y \) Downward Force (N)</span>
-                    </div>
-
-                    <!-- Beam Support Configuration Selection -->
-                    <div class="field-group mb-3">
-                        <label for="vmBeamType">รูปแบบจุดรองรับเพลา/คาน (Beam Support Configuration)</label>
-                        <select id="vmBeamType">
-                            <option value="ss" selected>Simply Supported (คานพาดเรียบ 2 จุดยึดปลาย xa=0, xb=L)</option>
-                            <option value="cantilever">Cantilever Beam (คานยื่น - ยึดแน่นฝั่งซ้าย x=0, ฝั่งขวาปล่อยอิสระ)</option>
-                            <option value="overhanging">Overhanging Beam (คานพาดเรียบมีส่วนยื่นออกนอกบ่าลูกปืน)</option>
-                        </select>
-                    </div>
-
-                    <!-- Bearing positions for Overhanging Beam -->
-                    <div class="form-row-2 mb-3" id="overhangingPosRow" style="display: none;">
-                        <div class="field-group">
-                            <label for="vmXa">ตำแหน่งบ่ารองรับซ้าย (x<sub>A</sub>)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="vmXa" value="10" step="any">
-                                <span class="unit-tag">mm</span>
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-bolt"></i> Power & Operating Speed</legend>
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="powerW">Motor Power (P)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="powerW" value="150" step="any">
+                                    <span class="unit-tag">W</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="rpm">Rotational Speed (N)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="rpm" value="60" step="any">
+                                    <span class="unit-tag">RPM</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="field-group">
-                            <label for="vmXb">ตำแหน่งบ่ารองรับขวา (x<sub>B</sub>)</label>
-                            <div class="unit-wrapper">
-                                <input type="number" id="vmXb" value="90" step="any">
-                                <span class="unit-tag">mm</span>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-arrows-up-down-left-right"></i> Applied Loads & Dimensions</legend>
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="bendingMoment">Bending Moment (M)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="bendingMoment" value="20" step="any">
+                                    <span class="unit-tag">N-m</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="shaftLength">Shaft Length (L)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="shaftLength" value="100" step="any">
+                                    <span class="unit-tag">mm</span>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="axialForce">Axial Force (F)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="axialForce" value="0" step="any">
+                                    <span class="unit-tag">N</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="forceType">Force Direction</label>
+                                <select id="forceType">
+                                    <option value="compressive" selected>Compressive (แรงอัด)</option>
+                                    <option value="tensile">Tensile (แรงดึง)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field-group mt-2">
+                            <label for="endCondition">Bearing Support Boundary Condition</label>
+                            <select id="endCondition">
+                                <option value="SS" selected>Simply Supported (SS: n = 1.00)</option>
+                                <option value="CC">Clamped - Clamped (CC: n = 2.25)</option>
+                                <option value="SC">Simply Supported - Clamped (SC: n = 1.60)</option>
+                                <option value="CF">Clamped - Free (CF: n = 0.25)</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-bullseye"></i> Geometric Stress Concentration (K<sub>t</sub>, K<sub>ts</sub>)</legend>
+                        <div class="field-group mb-2">
+                            <label for="scPreset">Notch Geometry Preset</label>
+                            <select id="scPreset">
+                                <option value="KEYWAY_PROFILE" selected>Profile Keyway (Kt = 2.1, Kts = 1.8)</option>
+                                <option value="SHOULDER_FILLET">Bearing Shoulder Fillet (Kt = 1.7, Kts = 1.5)</option>
+                                <option value="SMOOTH">Smooth Shaft / No Notch (Kt = 1.0, Kts = 1.0)</option>
+                                <option value="SHARP_NOTCH">Sharp Radius Notch (Kt = 2.5, Kts = 2.0)</option>
+                                <option value="CUSTOM">Custom Parameters</option>
+                            </select>
+                        </div>
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="ktValue">Bending K<sub>t</sub></label>
+                                <input type="number" id="ktValue" value="2.1" step="0.1">
+                            </div>
+                            <div class="field-group">
+                                <label for="ktsValue">Torsion K<sub>ts</sub></label>
+                                <input type="number" id="ktsValue" value="1.8" step="0.1">
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-cube"></i> Material & Custom ASME Factors (C<sub>m</sub>, C<sub>t</sub>)</legend>
+                        <div class="field-group mb-2">
+                            <label for="materialPreset">Material Standard Grade</label>
+                            <select id="materialPreset">
+                                <option value="SS400" selected>SS400 / Structural Steel (Sy=250, Sut=400 MPa)</option>
+                                <option value="AISI1020">AISI 1020 Cold Drawn (Sy=290, Sut=380 MPa)</option>
+                                <option value="AISI1045">AISI 1045 Cold Drawn (Sy=310, Sut=570 MPa)</option>
+                                <option value="AISI4140">AISI 4140 Alloy Steel (Sy=415, Sut=655 MPa)</option>
+                                <option value="CUSTOM">Custom Material Properties</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="yieldStrength">Yield Strength (S<sub>y</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="yieldStrength" value="250" step="any">
+                                    <span class="unit-tag">MPa</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="tensileStrength">Tensile Strength (S<sub>ut</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="tensileStrength" value="400" step="any">
+                                    <span class="unit-tag">MPa</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="fos">Target FOS (n)</label>
+                                <input type="number" id="fos" value="2.0" step="0.1">
+                            </div>
+                            <div class="field-group">
+                                <label for="hasKeyway">Keyway Notch</label>
+                                <select id="hasKeyway">
+                                    <option value="true" selected>With Keyway (มีร่องลิ่ม)</option>
+                                    <option value="false">No Keyway (ไม่มีร่องลิ่ม)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="field-group mb-2">
+                            <label for="loadType">ASME Shock & Load Type (Table 9.2)</label>
+                            <select id="loadType">
+                                <option value="steady" selected>Rotating - Steady Load (Cm=1.5, Ct=1.0)</option>
+                                <option value="light_shock">Rotating - Light Shock (Cm=1.75, Ct=1.25)</option>
+                                <option value="heavy_shock">Rotating - Heavy Shock (Cm=2.5, Ct=2.25)</option>
+                                <option value="stat_steady">Stationary - Steady Load (Cm=1.0, Ct=1.0)</option>
+                                <option value="CUSTOM">Custom C<sub>m</sub> & C<sub>t</sub> (กำหนดเอง)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="cmValue">Bending Factor C<sub>m</sub></label>
+                                <input type="number" id="cmValue" value="1.5" step="0.05">
+                            </div>
+                            <div class="field-group">
+                                <label for="ctValue">Torsion Factor C<sub>t</sub></label>
+                                <input type="number" id="ctValue" value="1.0" step="0.05">
+                            </div>
+                        </div>
+                    </fieldset>
+                </section>
+
+                <!-- Right Results Column -->
+                <section class="paper-card output-section">
+                    <div class="card-title">
+                        <i class="fa-solid fa-square-poll-vertical"></i> II. Shaft Analysis Results
+                        <span id="verdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> DESIGN SAFE</span>
                     </div>
 
-                    <!-- Multi-Load Table -->
-                    <div class="section-subtitle"><i class="fa-solid fa-weight-hanging"></i> รายการแรงกระทำแบบเวกเตอร์ (Vector Point Loads W<sub>i</sub>)</div>
-                    <table class="report-table compact mb-2" id="vmLoadsTable">
+                    <table class="report-table">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th>ทิศทางแรง (&plusmn;Y)</th>
-                                <th>ขนาดแรง (Load W<sub>i</sub>)</th>
-                                <th>ตำแหน่งจากจุดซ้ายสุด (x<sub>i</sub>)</th>
-                                <th>การจัดการ</th>
+                                <th>Parameter</th>
+                                <th>Equation / Method</th>
+                                <th>Calculated Value</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody id="vmLoadsTbody">
-                            <!-- Dynamic Load Rows -->
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td><strong>Recommended ISO Size</strong></td>
+                                <td>ISO/R 775-1969 Table 9.1</td>
+                                <td><strong id="resIsoDia" class="primary-val">14 mm</strong></td>
+                                <td><span class="status-badge pass">ISO Standard</span></td>
+                            </tr>
+                            <tr>
+                                <td>ASME Calculated Diameter</td>
+                                <td><span id="eqAsme">\( d^3 = \frac{16}{\pi \tau_d} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d}{8} + C_m M\right)^2} \)</span></td>
+                                <td id="resCalcDia">13.64 mm</td>
+                                <td>Calculated Min</td>
+                            </tr>
+                            <tr>
+                                <td>Transmitted Torque (T)</td>
+                                <td><span id="eqTorque">\( T = \frac{P}{\omega} = \frac{P \cdot 60}{2\pi N} \)</span></td>
+                                <td id="resTorque">23.87 N-m</td>
+                                <td id="resTorqueNmm">23,873 N-mm</td>
+                            </tr>
+                            <tr>
+                                <td>Twist Angle (&theta;)</td>
+                                <td><span id="eqTwist">\( \theta = \frac{584 \cdot T \cdot L}{G \cdot d^4} \)</span></td>
+                                <td id="resTwistDeg">0.459&deg;</td>
+                                <td id="resTwistPerM">4.59 deg/m</td>
+                            </tr>
+                            <tr>
+                                <td>Critical Speed (n<sub>c</sub>)</td>
+                                <td><span id="eqCritical">\( n_c = 945 \sqrt{\frac{\sum W_i y_i}{\sum W_i y_i^2}} \)</span></td>
+                                <td id="resCriticalSpeed">4,056 RPM</td>
+                                <td id="resOperatingCheck">N = 60 RPM (Safe)</td>
+                            </tr>
                         </tbody>
                     </table>
 
-                    <div class="mb-3">
-                        <button class="btn-scientific" id="btnAddLoadRow"><i class="fa-solid fa-plus"></i> เพิ่มแรงจุด (Add Point Load)</button>
+                    <div class="latex-panel">
+                        <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Shaft Equations</div>
+                        <div class="latex-grid">
+                            <div class="latex-box">
+                                <span class="latex-label">1. ASME Sizing Equation</span>
+                                <div class="latex-math">$$d^3 = \frac{16}{\pi \tau_d (1 - K^4)} \sqrt{(C_t T)^2 + \left(\frac{\alpha F d (1+K^2)}{8} + C_m M\right)^2}$$</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Summary Results Table -->
-                    <table class="report-table compact mb-3">
+                    <div class="section-subtitle"><i class="fa-solid fa-shield-halved"></i> Safety Factors Evaluation</div>
+                    <table class="report-table compact">
                         <thead>
                             <tr>
-                                <th>Left Reaction R<sub>A</sub></th>
-                                <th>Right Reaction R<sub>B</sub> / Fixed Moment</th>
-                                <th>Peak Shear Force V<sub>max</sub></th>
-                                <th>Peak Bending Moment M<sub>max</sub></th>
+                                <th>Criterion</th>
+                                <th>Allowable</th>
+                                <th>Calculated Factor</th>
+                                <th>Evaluation</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td id="resVmRa">400 N</td>
-                                <td id="resVmRb">400 N</td>
-                                <td id="resVmVmax">400 N</td>
-                                <td><strong id="resVmMmaxNm" class="primary-val">20 N-m</strong> (<span id="resVmMmaxNmm">20,000 N-mm</span>)</td>
+                                <td>ASME Allowable Shear (&tau;<sub>d</sub>)</td>
+                                <td>Standard Rule</td>
+                                <td id="resTauD">41.0 MPa</td>
+                                <td>Allowable Shear</td>
+                            </tr>
+                            <tr>
+                                <td>Buckling Factor (&alpha;)</td>
+                                <td>Slenderness Ratio</td>
+                                <td id="resAlpha">1.00</td>
+                                <td>Slenderness Check</td>
+                            </tr>
+                            <tr>
+                                <td>Von Mises Static Yield FOS</td>
+                                <td>\( n_{yield} = \frac{S_y}{\sigma'_{max}} \)</td>
+                                <td id="resYieldFos">2.34</td>
+                                <td>Yield Safety</td>
+                            </tr>
+                            <tr>
+                                <td>Modified Goodman Fatigue FOS</td>
+                                <td>\( \frac{1}{n} = \frac{\sigma'_a}{S_e} + \frac{\sigma'_m}{S_{ut}} \)</td>
+                                <td id="resGoodmanFos">1.61</td>
+                                <td>Fatigue Safety</td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <div class="sync-bar mb-3">
-                        <button class="btn-scientific btn-sync" id="btnSyncMoment">
-                            <i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (20 N-m) เข้าไปคำนวณเพลาหลักทันที
-                        </button>
+                    <div class="scientific-advice" id="adviceBox">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span id="adviceText">เพลาขนาด 14 mm ผ่านเกณฑ์ Static Yield (FOS=2.34)</span>
                     </div>
 
-                    <!-- Dual Canvases for SFD and BMD -->
-                    <div class="diagram-box mb-3">
-                        <div class="diagram-caption"><i class="fa-solid fa-chart-line"></i> Figure 2a: Shear Force Diagram V(x) [SFD]</div>
+                    <div class="diagram-box mb-4">
+                        <div class="diagram-caption"><i class="fa-solid fa-pen-ruler"></i> Figure 1: 2D Shaft Geometry & Force Vector Diagram</div>
                         <div class="canvas-paper">
-                            <canvas id="sfdCanvas" width="600" height="150"></canvas>
+                            <canvas id="shaftCanvas" width="600" height="220"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- V-M DIAGRAM ENGINE -->
+                    <div class="vm-section-box">
+                        <div class="card-title">
+                            <i class="fa-solid fa-chart-area"></i> III. Advanced Vector V-M Diagram Engine
+                        </div>
+
+                        <div class="coord-banner mb-3">
+                            <span class="coord-tag"><i class="fa-solid fa-compass"></i> 2D Vector Sign Convention:</span>
+                            <span>\( X \to \) Shaft Axis (mm)</span> • 
+                            <span class="up-val"><i class="fa-solid fa-arrow-up"></i> \( +Y \) Upward Force (N)</span> • 
+                            <span class="down-val"><i class="fa-solid fa-arrow-down"></i> \( -Y \) Downward Force (N)</span>
+                        </div>
+
+                        <div class="field-group mb-3">
+                            <label for="vmBeamType">รูปแบบจุดรองรับเพลา/คาน (Beam Support Configuration)</label>
+                            <select id="vmBeamType">
+                                <option value="ss" selected>Simply Supported (คานพาดเรียบ 2 จุดยึดปลาย xa=0, xb=L)</option>
+                                <option value="cantilever">Cantilever Beam (คานยื่น - ยึดแน่นฝั่งซ้าย x=0, ฝั่งขวาปล่อยอิสระ)</option>
+                                <option value="overhanging">Overhanging Beam (คานพาดเรียบมีส่วนยื่นออกนอกบ่าลูกปืน)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row-2 mb-3" id="overhangingPosRow" style="display: none;">
+                            <div class="field-group">
+                                <label for="vmXa">ตำแหน่งบ่ารองรับซ้าย (x<sub>A</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="vmXa" value="10" step="any">
+                                    <span class="unit-tag">mm</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="vmXb">ตำแหน่งบ่ารองรับขวา (x<sub>B</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="vmXb" value="90" step="any">
+                                    <span class="unit-tag">mm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-subtitle"><i class="fa-solid fa-weight-hanging"></i> รายการแรงกระทำแบบเวกเตอร์ (Vector Point Loads W<sub>i</sub>)</div>
+                        <table class="report-table compact mb-2" id="vmLoadsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>ทิศทางแรง (&plusmn;Y)</th>
+                                    <th>ขนาดแรง (Load W<sub>i</sub>)</th>
+                                    <th>ตำแหน่งจากจุดซ้ายสุด (x<sub>i</sub>)</th>
+                                    <th>การจัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vmLoadsTbody"></tbody>
+                        </table>
+
+                        <div class="mb-3">
+                            <button class="btn-scientific" id="btnAddLoadRow"><i class="fa-solid fa-plus"></i> เพิ่มแรงจุด (Add Point Load)</button>
+                        </div>
+
+                        <table class="report-table compact mb-3">
+                            <thead>
+                                <tr>
+                                    <th>Left Reaction R<sub>A</sub></th>
+                                    <th>Right Reaction R<sub>B</sub> / Fixed Moment</th>
+                                    <th>Peak Shear Force V<sub>max</sub></th>
+                                    <th>Peak Bending Moment M<sub>max</sub></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td id="resVmRa">400 N</td>
+                                    <td id="resVmRb">400 N</td>
+                                    <td id="resVmVmax">400 N</td>
+                                    <td><strong id="resVmMmaxNm" class="primary-val">20 N-m</strong> (<span id="resVmMmaxNmm">20,000 N-mm</span>)</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="sync-bar mb-3">
+                            <button class="btn-scientific btn-sync" id="btnSyncMoment">
+                                <i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (20 N-m) เข้าไปคำนวณเพลาหลักทันที
+                            </button>
+                        </div>
+
+                        <div class="diagram-box mb-3">
+                            <div class="diagram-caption"><i class="fa-solid fa-chart-line"></i> Figure 2a: Shear Force Diagram V(x) [SFD]</div>
+                            <div class="canvas-paper">
+                                <canvas id="sfdCanvas" width="600" height="150"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="diagram-box">
+                            <div class="diagram-caption"><i class="fa-solid fa-chart-area"></i> Figure 2b: Bending Moment Diagram M(x) [BMD]</div>
+                            <div class="canvas-paper">
+                                <canvas id="bmdCanvas" width="600" height="150"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- TAB 2: BEARING LIFE & SELECTION PANEL -->
+        <div class="tab-panel" id="tabBearing">
+            <main class="scientific-grid">
+                <!-- Left Input Column -->
+                <section class="paper-card input-section">
+                    <div class="card-title">
+                        <i class="fa-solid fa-circle-dot"></i> I. Bearing Calculation Inputs (Week 05)
+                    </div>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-ruler-combined"></i> Shaft Diameter & Speed</legend>
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="bearingShaftDia">Shaft Diameter (d)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="bearingShaftDia" value="14" step="any">
+                                    <span class="unit-tag">mm</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="bearingRpm">Operating Speed (N)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="bearingRpm" value="60" step="any">
+                                    <span class="unit-tag">RPM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-arrows-to-circle"></i> Applied Radial & Axial Loads</legend>
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="bearingFr">Radial Load (F<sub>r</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="bearingFr" value="400" step="any">
+                                    <span class="unit-tag">N</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="bearingFa">Axial Thrust Load (F<sub>a</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="bearingFa" value="0" step="any">
+                                    <span class="unit-tag">N</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label for="bearingType">Bearing Type Exponent (k Factor)</label>
+                            <select id="bearingType">
+                                <option value="ball" selected>Deep Groove Ball Bearing (k = 3.0)</option>
+                                <option value="roller">Roller Bearing (k = 3.33)</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-sliders"></i> Dynamic Capacity & Factors</legend>
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="bearingCRating">Basic Dynamic Capacity (C)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="bearingCRating" value="6800" step="any">
+                                    <span class="unit-tag">N</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="bearingVFactor">Rotation Factor (V)</label>
+                                <select id="bearingVFactor">
+                                    <option value="1.0" selected>Inner Ring Rotating (V = 1.0)</option>
+                                    <option value="1.2">Outer Ring Rotating (V = 1.2)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </fieldset>
+                </section>
+
+                <!-- Right Results Column -->
+                <section class="paper-card output-section">
+                    <div class="card-title">
+                        <i class="fa-solid fa-chart-line"></i> II. Bearing Life Analysis & ISO Selection
+                    </div>
+
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Formula</th>
+                                <th>Calculated Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td><strong>Equivalent Radial Load (P)</strong></td>
+                                <td>\( P = X V F_r + Y F_a \)</td>
+                                <td><strong id="resBearingP" class="primary-val">400 N</strong></td>
+                                <td><span class="status-badge pass">Equivalent Load</span></td>
+                            </tr>
+                            <tr>
+                                <td>Bearing Life L<sub>10</sub> (Million Revs)</td>
+                                <td>\( L_{10} = \left(\frac{C}{P}\right)^k \)</td>
+                                <td id="resBearingL10Mr">4,913 ล้านรอบ</td>
+                                <td>L10 Life</td>
+                            </tr>
+                            <tr>
+                                <td>Bearing Operating Life L<sub>10h</sub></td>
+                                <td>\( L_{10h} = \frac{10^6}{60 N} L_{10} \)</td>
+                                <td id="resBearingL10Hours">1,364,722 ชั่วโมง</td>
+                                <td>Operating Hours</td>
+                            </tr>
+                            <tr>
+                                <td>Continuous 24/7 Service Life</td>
+                                <td>\( L_{10h} / 8766 \)</td>
+                                <td id="resBearingYears">155.6 ปี</td>
+                                <td>Years</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="latex-panel">
+                        <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Bearing Equations</div>
+                        <div class="latex-grid">
+                            <div class="latex-box">
+                                <span class="latex-label">1. Bearing Life Formula (L10 & L10h)</span>
+                                <div class="latex-math">$$L_{10} = \left(\frac{C}{P}\right)^k \quad (\text{Million Revolutions}), \qquad L_{10h} = \frac{10^6}{60 \cdot N} \left(\frac{C}{P}\right)^k \quad (\text{Hours})$$</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-subtitle"><i class="fa-solid fa-table-list"></i> Recommended Standard ISO 62xx Series Bearings</div>
+                    <table class="report-table compact" id="tableIsoBearings">
+                        <thead>
+                            <tr>
+                                <th>Designation</th>
+                                <th>Bore (d)</th>
+                                <th>Outer (D)</th>
+                                <th>Width (B)</th>
+                                <th>Dynamic Rating (C)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyIsoBearings"></tbody>
+                    </table>
+                </section>
+            </main>
+        </div>
+
+        <!-- TAB 3: GEAR DESIGN & LEWIS STRENGTH PANEL -->
+        <div class="tab-panel" id="tabGear">
+            <main class="scientific-grid">
+                <!-- Left Input Column -->
+                <section class="paper-card input-section">
+                    <div class="card-title">
+                        <i class="fa-solid fa-gear"></i> I. Spur Gear Design Inputs (Week 06 & 07)
+                    </div>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-bolt"></i> Power & Speed</legend>
+                        <div class="form-row-2">
+                            <div class="field-group">
+                                <label for="gearPowerW">Motor Power (P)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="gearPowerW" value="150" step="any">
+                                    <span class="unit-tag">W</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="gearRpm">Pinion Speed (N<sub>1</sub>)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="gearRpm" value="60" step="any">
+                                    <span class="unit-tag">RPM</span>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-gears"></i> Module & Tooth Geometry</legend>
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="gearModule">Module (m)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="gearModule" value="2.0" step="0.25">
+                                    <span class="unit-tag">mm</span>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="gearFaceWidth">Face Width (b)</label>
+                                <div class="unit-wrapper">
+                                    <input type="number" id="gearFaceWidth" value="20" step="any">
+                                    <span class="unit-tag">mm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row-2 mb-2">
+                            <div class="field-group">
+                                <label for="gearTeethZ1">Pinion Teeth (Z<sub>1</sub>)</label>
+                                <input type="number" id="gearTeethZ1" value="20" step="1">
+                            </div>
+                            <div class="field-group">
+                                <label for="gearTeethZ2">Gear Teeth (Z<sub>2</sub>)</label>
+                                <input type="number" id="gearTeethZ2" value="40" step="1">
+                            </div>
+                        </div>
+
+                        <div class="field-group">
+                            <label for="gearPressureAngle">Pressure Angle (&phi;)</label>
+                            <select id="gearPressureAngle">
+                                <option value="20" selected>20&deg; Standard Full Depth</option>
+                                <option value="14.5">14.5&deg; Legacy Full Depth</option>
+                                <option value="25">25&deg; High Capacity Stub</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="paper-fieldset">
+                        <legend><i class="fa-solid fa-shield"></i> Material Bending Stress (&sigma;<sub>b</sub>)</legend>
+                        <div class="field-group">
+                            <label for="gearAllowableStress">Allowable Bending Stress (&sigma;<sub>b</sub>)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="gearAllowableStress" value="140" step="any">
+                                <span class="unit-tag">MPa</span>
+                            </div>
+                        </div>
+                    </fieldset>
+                </section>
+
+                <!-- Right Results Column -->
+                <section class="paper-card output-section">
+                    <div class="card-title">
+                        <i class="fa-solid fa-chart-line"></i> II. Spur Gear Geometry & Lewis Bending Verification
+                        <span id="gearVerdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> GEAR SAFE</span>
+                    </div>
+
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Equation</th>
+                                <th>Calculated Value</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td><strong>Pitch Diameter (d<sub>1</sub>)</strong></td>
+                                <td>\( d_1 = m \cdot Z_1 \)</td>
+                                <td><strong id="resGearD1" class="primary-val">40 mm</strong></td>
+                                <td>Pinion Size</td>
+                            </tr>
+                            <tr>
+                                <td>Driven Gear Diameter (d<sub>2</sub>)</td>
+                                <td>\( d_2 = m \cdot Z_2 \)</td>
+                                <td id="resGearD2">80 mm</td>
+                                <td>Gear Size</td>
+                            </tr>
+                            <tr>
+                                <td>Center Distance (a)</td>
+                                <td>\( a = \frac{d_1 + d_2}{2} \)</td>
+                                <td id="resGearCenterDist">60 mm</td>
+                                <td>Center Distance</td>
+                            </tr>
+                            <tr>
+                                <td>Tangential Force (W<sub>T</sub>)</td>
+                                <td>\( W_T = \frac{2000 \cdot T}{d_1} \)</td>
+                                <td id="resGearWt">1,193.7 N</td>
+                                <td>Tangential Force</td>
+                            </tr>
+                            <tr>
+                                <td>Radial Force (W<sub>R</sub>)</td>
+                                <td>\( W_R = W_T \tan \phi \)</td>
+                                <td id="resGearWr">434.5 N</td>
+                                <td>Radial Force</td>
+                            </tr>
+                            <tr>
+                                <td>Lewis Allowable Force (W<sub>T_allow</sub>)</td>
+                                <td>\( W_{T\_allow} = \sigma_b \cdot b \cdot \pi m \cdot y \)</td>
+                                <td id="resGearWtAllow">1,829.7 N</td>
+                                <td id="resGearLewisFos">FOS = 1.53 (Safe)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div class="latex-panel">
+                        <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Gear Lewis Bending Equation</div>
+                        <div class="latex-grid">
+                            <div class="latex-box">
+                                <span class="latex-label">1. Lewis Bending Strength Formula</span>
+                                <div class="latex-math">$$W_{T\_allow} = \sigma_b \cdot b \cdot \pi \cdot m \cdot y \qquad \text{where } y \text{ is Lewis Form Factor}$$</div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="diagram-box">
-                        <div class="diagram-caption"><i class="fa-solid fa-chart-area"></i> Figure 2b: Bending Moment Diagram M(x) [BMD]</div>
+                        <div class="diagram-caption"><i class="fa-solid fa-circle-nodes"></i> Figure 3: 2D Spur Gear Pitch Mesh Diagram</div>
                         <div class="canvas-paper">
-                            <canvas id="bmdCanvas" width="600" height="150"></canvas>
+                            <canvas id="gearCanvas" width="600" height="220"></canvas>
                         </div>
                     </div>
-                </div>
-
-            </section>
-        </main>
+                </section>
+            </main>
+        </div>
     </div>
 
     <script src="app.js"></script>
