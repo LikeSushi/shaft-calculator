@@ -14,7 +14,7 @@
     <!-- KaTeX LaTeX Renderer CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="if(typeof renderKaTeXMath==='function') renderKaTeXMath();"></script>
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -53,11 +53,22 @@
 
         <!-- TAB 1: SHAFT DESIGN PANEL ONLY -->
         <div class="tab-panel active" id="tabShaft" style="display: block;">
-            <div class="preset-toolbar mb-3">
-                <span class="toolbar-label"><i class="fa-solid fa-bookmark"></i> Standard Test Cases:</span>
-                <button class="btn-scientific active" id="btnPresetTable">โจทย์ตารางอาจารย์ (150W)</button>
-                <button class="btn-scientific" id="btnPresetEx1">ตัวอย่างที่ 9.1 (ASME)</button>
-                <button class="btn-scientific" id="btnPresetEx4">ตัวอย่างที่ 9.4 (Critical Speed)</button>
+            <div class="preset-toolbar mb-3" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <span class="toolbar-label"><i class="fa-solid fa-bookmark"></i> Standard Test Cases:</span>
+                    <button class="btn-scientific active" id="btnPresetTable">โจทย์ตารางอาจารย์ (150W)</button>
+                    <button class="btn-scientific" id="btnPresetEx1">ตัวอย่างที่ 9.1 (ASME)</button>
+                    <button class="btn-scientific" id="btnPresetEx4">ตัวอย่างที่ 9.4 (Critical Speed)</button>
+                </div>
+                <div class="field-group" style="margin: 0; min-width: 220px; display: inline-flex; align-items: center; gap: 8px;">
+                    <label for="decimalDigits" style="margin: 0; white-space: nowrap; font-size: 13px; font-weight: 600; color: #1e3a8a;"><i class="fa-solid fa-calculator"></i> ความละเอียดทศนิยม:</label>
+                    <select id="decimalDigits" style="padding: 4px 8px; font-size: 13px; font-weight: 600; border-color: #3b82f6; border-radius: 6px; background-color: #eff6ff; color: #1e3a8a;">
+                        <option value="4" selected>4 ตำแหน่ง (0.0000)</option>
+                        <option value="5">5 ตำแหน่ง (0.00000)</option>
+                        <option value="6">6 ตำแหน่ง (0.000000)</option>
+                        <option value="2">2 ตำแหน่ง (0.00)</option>
+                    </select>
+                </div>
             </div>
 
             <main class="scientific-grid">
@@ -91,7 +102,7 @@
                         <legend><i class="fa-solid fa-arrows-up-down-left-right"></i> Applied Loads & Dimensions</legend>
                         <div class="form-row-2 mb-2">
                             <div class="field-group">
-                                <label for="bendingMoment">Bending Moment (M)</label>
+                                <label for="bendingMoment">Bending Moment (M) <span style="font-size: 11px; color: #0284c7; font-weight: 500;"><i class="fa-solid fa-pen-to-square"></i> (กรอกค่า M โดยตรงเพื่อคำนวณได้ทันที)</span></label>
                                 <div class="unit-wrapper">
                                     <input type="number" id="bendingMoment" value="20" step="any">
                                     <span class="unit-tag">N-m</span>
@@ -339,7 +350,7 @@
                     <!-- V-M DIAGRAM ENGINE -->
                     <div class="vm-section-box">
                         <div class="card-title">
-                            <i class="fa-solid fa-chart-area"></i> III. Advanced Vector V-M Diagram Engine
+                            <i class="fa-solid fa-chart-area"></i> III. Advanced Vector V-M Diagram Engine <span style="font-size: 12px; font-weight: normal; color: #475569;">(ออปชันเสริม: วิเคราะห์คานและแผนภาพแรงเฉือน/โมเมนต์ดัด)</span>
                         </div>
 
                         <div class="coord-banner mb-3">
@@ -348,6 +359,35 @@
                             <span class="up-val"><i class="fa-solid fa-arrow-up"></i> \( +Y \) Upward Force (N)</span> • 
                             <span class="down-val"><i class="fa-solid fa-arrow-down"></i> \( -Y \) Downward Force (N)</span>
                         </div>
+
+                        <!-- DYNAMIC COORDINATE SYSTEM CONFIGURATION -->
+                        <fieldset class="paper-fieldset mb-3" style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px;">
+                            <legend style="font-weight: 700; color: #1e3a8a; font-size: 13px;"><i class="fa-solid fa-sliders"></i> ตั้งค่าระบบพิกัด & เครื่องหมาย (Coordinate System Settings)</legend>
+                            <div class="form-row-2 mb-2">
+                                <div class="field-group">
+                                    <label for="vmOrigin">จุดอ้างอิงเริ่มต้นแกน X (Origin X = 0)</label>
+                                    <select id="vmOrigin">
+                                        <option value="left" selected>ปลายเพลาซ้ายสุด (Left Tip: X = 0 mm)</option>
+                                        <option value="bearingA">ตำแหน่งลูกปืนรองรับซ้าย (Bearing A: X = xA)</option>
+                                        <option value="right">ปลายเพลาขวาสุด (Right Tip: X = L mm)</option>
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="vmYDir">ทิศทางบวกแกน Y แนวตั้ง (+Y Direction)</label>
+                                    <select id="vmYDir">
+                                        <option value="upward" selected>+Y ชี้ขึ้น (Upward Positive ↑)</option>
+                                        <option value="downward">+Y ชี้ลง (Downward Positive ↓)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="field-group">
+                                <label for="vmMomentSign">เครื่องหมายโมเมนต์ดัด (Bending Moment Sign Convention)</label>
+                                <select id="vmMomentSign">
+                                    <option value="sagging" selected>Sagging Moment (+M แรงดึงฝั่งล่าง / Compression Top)</option>
+                                    <option value="hogging">Hogging Moment (+M แรงดึงฝั่งบน / Compression Bottom)</option>
+                                </select>
+                            </div>
+                        </fieldset>
 
                         <div class="field-group mb-3">
                             <label for="vmBeamType">รูปแบบจุดรองรับเพลา/คาน (Beam Support Configuration)</label>
@@ -380,7 +420,7 @@
                             <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>ทิศทางแรง (&plusmn;Y)</th>
+                                    <th>ทิศทางแรง (Direction)</th>
                                     <th>ขนาดแรง (Load W<sub>i</sub>)</th>
                                     <th>ตำแหน่งจากจุดซ้ายสุด (x<sub>i</sub>)</th>
                                     <th>การจัดการ</th>
@@ -414,7 +454,7 @@
 
                         <div class="sync-bar mb-3">
                             <button class="btn-scientific btn-sync" id="btnSyncMoment">
-                                <i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (20 N-m) เข้าไปคำนวณเพลาหลักทันที
+                                <i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> จากแผนภาพ เข้าไปตั้งค่า Bending Moment หลัก (Optional Sync)
                             </button>
                         </div>
 
@@ -567,7 +607,16 @@
                         </div>
                     </div>
 
-                    <div class="section-subtitle"><i class="fa-solid fa-table-list"></i> Recommended Standard ISO 62xx Series Bearings</div>
+                    <div class="scientific-advice mb-3" id="recBearingBox" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 8px; padding: 12px 14px;">
+                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-star" style="color: #eab308;"></i> <span>ตลับลูกปืนแนะนำ (Recommended ISO Bearing): <strong id="recBearingName">ISO 6202</strong></span>
+                        </div>
+                        <div style="font-size: 13px;" id="recBearingDetail">
+                            ขนาดรูเพลา d = 15 mm | โตนอก D = 35 mm | หนา B = 11 mm | C = 7,800 N
+                        </div>
+                    </div>
+
+                    <div class="section-subtitle"><i class="fa-solid fa-table-list"></i> Standard ISO 62xx Series Bearings Selection Table</div>
                     <table class="report-table compact" id="tableIsoBearings">
                         <thead>
                             <tr>
@@ -585,17 +634,17 @@
             </main>
         </div>
 
-        <!-- TAB 3: GEAR DESIGN & SELECTION PANEL ONLY (EXCEL COMPREHENSIVE ENGINE) -->
+        <!-- TAB 3: GEAR DESIGN & SELECTION PANEL ONLY (SEPARATED PINION & GEAR COLUMNS) -->
         <div class="tab-panel" id="tabGear" style="display: none;">
             <main class="scientific-grid">
                 <!-- Left Input Column -->
                 <section class="paper-card input-section">
                     <div class="card-title">
-                        <i class="fa-solid fa-gear"></i> I. Full Gear Design Parameters (Excel Model)
+                        <i class="fa-solid fa-gear"></i> I. Gear Pair Input Parameters (Excel Model)
                     </div>
 
                     <fieldset class="paper-fieldset">
-                        <legend><i class="fa-solid fa-bolt"></i> Power, Speed & Gear Ratio</legend>
+                        <legend><i class="fa-solid fa-bolt"></i> Power & Transmission Ratio</legend>
                         <div class="form-row-2 mb-2">
                             <div class="field-group">
                                 <label for="gearPowerW">Power (W<sub>p</sub>)</label>
@@ -625,7 +674,7 @@
                     </fieldset>
 
                     <fieldset class="paper-fieldset">
-                        <legend><i class="fa-solid fa-gears"></i> Module & Geometry</legend>
+                        <legend><i class="fa-solid fa-gears"></i> Module & Geometry Factors</legend>
                         <div class="form-row-2 mb-2">
                             <div class="field-group">
                                 <label for="gearModule">Module (m)</label>
@@ -656,17 +705,17 @@
                     </fieldset>
 
                     <fieldset class="paper-fieldset">
-                        <legend><i class="fa-solid fa-shield"></i> Material Strength ($\sigma_p$, $\sigma_g$)</legend>
+                        <legend><i class="fa-solid fa-shield"></i> Separated Material Strengths (\(\sigma_p\), \(\sigma_g\))</legend>
                         <div class="form-row-2 mb-2">
                             <div class="field-group">
-                                <label for="gearSigmaP">Pinion $\sigma_p$</label>
+                                <label for="gearSigmaP">Pinion Strength (\(\sigma_p\))</label>
                                 <div class="unit-wrapper">
                                     <input type="number" id="gearSigmaP" value="103" step="any">
                                     <span class="unit-tag">N/mm²</span>
                                 </div>
                             </div>
                             <div class="field-group">
-                                <label for="gearSigmaG">Gear $\sigma_g$</label>
+                                <label for="gearSigmaG">Gear Strength (\(\sigma_g\))</label>
                                 <div class="unit-wrapper">
                                     <input type="number" id="gearSigmaG" value="82" step="any">
                                     <span class="unit-tag">N/mm²</span>
@@ -687,79 +736,143 @@
                 <!-- Right Results Column -->
                 <section class="paper-card output-section">
                     <div class="card-title">
-                        <i class="fa-solid fa-chart-line"></i> II. Gear Verification & Module Trial Matrix
+                        <i class="fa-solid fa-chart-line"></i> II. Gear Analysis & Verification
                         <span id="gearVerdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> DESIGN SAFE</span>
                     </div>
 
-                    <table class="report-table">
+                    <!-- SEPARATED PINION VS GEAR ANALYSIS TABLES -->
+                    <div class="section-subtitle"><i class="fa-solid fa-turn-up"></i> 1. Pinion Analysis (เฟืองขับ - Pinion Parameters)</div>
+                    <table class="report-table compact">
                         <thead>
                             <tr>
                                 <th>Parameter</th>
-                                <th>Formula / Method</th>
+                                <th>Formula</th>
                                 <th>Calculated Value</th>
                                 <th>Evaluation</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr class="highlight-row">
-                                <td><strong>Pitch Diameters (d<sub>p</sub> / d<sub>g</sub>)</strong></td>
-                                <td>\( d_p = m N_p, d_g = m N_g \)</td>
-                                <td><strong id="resGearDpDg" class="primary-val">96 mm / 336 mm</strong></td>
-                                <td>N<sub>g</sub> = 56 teeth</td>
+                                <td>Pinion Teeth ($N_p$) & Diameter ($d_p$)</td>
+                                <td>\( d_p = m \cdot N_p \)</td>
+                                <td id="resPinionDp">96.0 mm</td>
+                                <td id="resPinionNp">Np = 16 teeth</td>
                             </tr>
                             <tr>
-                                <td>Face Width (b) & Center Dist (C)</td>
-                                <td>\( b = k_b m, C = (d_p + d_g)/2 \)</td>
-                                <td id="resGearBC">b = 60 mm | C = 216 mm</td>
-                                <td>Center Distance</td>
+                                <td>Pinion Speed ($n_p$) & Strength ($\sigma_p$)</td>
+                                <td>Input Specification</td>
+                                <td id="resPinionSpeedSigma">690 rpm | 103 N/mm²</td>
+                                <td>Pinion Material</td>
                             </tr>
                             <tr>
-                                <td>Pitch Velocity (V) & Force (F<sub>t</sub>)</td>
-                                <td>\( V = \frac{\pi d_p n_p}{60000}, F_t = \frac{P}{V} \)</td>
-                                <td id="resGearVFt">V = 3.47 m/s | F<sub>t</sub> = 576.6 N</td>
-                                <td>Velocity & Tangential</td>
+                                <td>Lewis Factor ($Y_p$) & Strength Index</td>
+                                <td>\( \sigma_p \cdot Y_p \)</td>
+                                <td id="resPinionYIndex">Yp = 0.295 | Index = 30.39 N/mm²</td>
+                                <td>Pinion Index</td>
                             </tr>
                             <tr>
-                                <td>Dynamic Factor (K<sub>v</sub>) & Load (F<sub>d</sub>)</td>
-                                <td>\( K_v = \frac{3+V}{3}, F_d = F_t \cdot K_v \)</td>
-                                <td id="resGearKvFd">K<sub>v</sub> = 2.16 | F<sub>d</sub> = 1,243.3 N</td>
-                                <td>Dynamic Load</td>
-                            </tr>
-                            <tr>
-                                <td>Bending Strength (F<sub>b</sub>)</td>
-                                <td>\( F_b = \frac{\sigma \cdot b \cdot m \cdot Y}{K_f} \)</td>
-                                <td id="resGearFb">F<sub>b</sub> = 6,303.6 N</td>
-                                <td id="resGearBendingStatus"><span class="status-badge pass">PASS: Safe</span></td>
-                            </tr>
-                            <tr>
-                                <td>Allowable Wear Load (F<sub>w</sub>)</td>
-                                <td>\( F_w = d_p \cdot b \cdot Q \cdot K \)</td>
-                                <td id="resGearFw">F<sub>w</sub> = 10,590.7 N</td>
-                                <td id="resGearWearStatus"><span class="status-badge pass">PASS: Safe</span></td>
+                                <td>Pinion Bending Strength ($F_{b\_pinion}$)</td>
+                                <td>\( F_{b\_pinion} = \frac{\sigma_p b m Y_p}{K_f} \)</td>
+                                <td id="resPinionFb"><strong class="primary-val">7,080.0 N</strong></td>
+                                <td id="resPinionBendingStatus"><span class="status-badge pass">PASS: Safe</span></td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <div class="latex-panel">
-                        <div class="latex-panel-title"><i class="fa-solid fa-square-root-variable"></i> Governing Excel Gear Equations</div>
-                        <div class="latex-grid">
-                            <div class="latex-box">
-                                <span class="latex-label">1. Dynamic Load & Bending Strength</span>
-                                <div class="latex-math">$$F_d = F_t \cdot K_v, \qquad F_b = \frac{\sigma \cdot b \cdot m \cdot Y}{K_f}, \qquad F_w = d_p \cdot b \cdot Q \cdot K$$</div>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="section-subtitle"><i class="fa-solid fa-gear"></i> 2. Gear Analysis (เฟืองตาม - Gear Parameters)</div>
+                    <table class="report-table compact">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Formula</th>
+                                <th>Calculated Value</th>
+                                <th>Evaluation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="highlight-row">
+                                <td>Gear Teeth ($N_g$) & Diameter ($d_g$)</td>
+                                <td>\( N_g = N_p \cdot m_w, d_g = m \cdot N_g \)</td>
+                                <td id="resGearDg">336.0 mm</td>
+                                <td id="resGearNg">Ng = 56 teeth</td>
+                            </tr>
+                            <tr>
+                                <td>Gear Speed ($n_g$) & Strength ($\sigma_g$)</td>
+                                <td>\( n_g = n_p / m_w \)</td>
+                                <td id="resGearSpeedSigma">197.1 rpm | 82 N/mm²</td>
+                                <td>Gear Material</td>
+                            </tr>
+                            <tr>
+                                <td>Lewis Factor ($Y_g$) & Strength Index</td>
+                                <td>\( \sigma_g \cdot Y_g \)</td>
+                                <td id="resGearYIndex">Yg = 0.415 | Index = 34.03 N/mm²</td>
+                                <td>Gear Index</td>
+                            </tr>
+                            <tr>
+                                <td>Gear Bending Strength ($F_{b\_gear}$)</td>
+                                <td>\( F_{b\_gear} = \frac{\sigma_g b m Y_g}{K_f} \)</td>
+                                <td id="resGearFbVal"><strong class="primary-val">8,168.0 N</strong></td>
+                                <td id="resGearBendingStatusVal"><span class="status-badge pass">PASS: Safe</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- SHARED PAIR TRANSMISSION & WEAR LOAD TABLE -->
+                    <div class="section-subtitle"><i class="fa-solid fa-code-compare"></i> 3. Mesh Pair Transmission & Wear Verification</div>
+                    <table class="report-table compact">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Formula</th>
+                                <th>Calculated Value</th>
+                                <th>Evaluation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Weaker Component Indicator</td>
+                                <td>\( \min(\sigma_p Y_p, \sigma_g Y_g) \)</td>
+                                <td id="resGearWeaker"><strong id="resWeakerText">Pinion governs</strong></td>
+                                <td>Governing Fracture</td>
+                            </tr>
+                            <tr>
+                                <td>Face Width ($b$) & Center Distance ($C$)</td>
+                                <td>\( b = k_b m, C = (d_p + d_g)/2 \)</td>
+                                <td id="resGearBCVal">b = 60 mm | C = 216 mm</td>
+                                <td>Mesh Dimensions</td>
+                            </tr>
+                            <tr>
+                                <td>Pitch Velocity ($V$) & Force ($F_t$)</td>
+                                <td>\( V = \frac{\pi d_p n_p}{60000}, F_t = \frac{P}{V} \)</td>
+                                <td id="resGearVFtVal">V = 3.47 m/s | F<sub>t</sub> = 576.6 N</td>
+                                <td>Pitch Force</td>
+                            </tr>
+                            <tr>
+                                <td>Dynamic Factor ($K_v$) & Load ($F_d$)</td>
+                                <td>\( K_v = \frac{3+V}{3}, F_d = F_t \cdot K_v \)</td>
+                                <td id="resGearKvFdVal">K<sub>v</sub> = 2.16 | F<sub>d</sub> = 1,243.3 N</td>
+                                <td>Dynamic Load</td>
+                            </tr>
+                            <tr>
+                                <td>Allowable Wear Load ($F_w$)</td>
+                                <td>\( F_w = d_p \cdot b \cdot Q \cdot K \)</td>
+                                <td id="resGearFwVal">F<sub>w</sub> = 10,590.7 N</td>
+                                <td id="resGearWearStatusVal"><span class="status-badge pass">PASS: Safe</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
 
                     <!-- MODULE TRIAL MATRIX TABLE (EXCEL SHEET 2) -->
-                    <div class="section-subtitle"><i class="fa-solid fa-table"></i> Module Trial Matrix Table (m = 2.0 to 9.0 mm)</div>
+                    <div class="section-subtitle"><i class="fa-solid fa-table"></i> 4. Module Trial Matrix Table (m = 2.0 to 9.0 mm)</div>
                     <table class="report-table compact" id="tableModuleMatrix">
                         <thead>
                             <tr>
                                 <th>Module m</th>
                                 <th>Width b</th>
-                                <th>d<sub>p</sub></th>
+                                <th>d<sub>p</sub> / d<sub>g</sub></th>
                                 <th>Dynamic F<sub>d</sub></th>
-                                <th>Bending F<sub>b</sub></th>
+                                <th>Pinion F<sub>b_p</sub></th>
+                                <th>Gear F<sub>b_g</sub></th>
                                 <th>Wear F<sub>w</sub></th>
                                 <th>Verdict</th>
                             </tr>

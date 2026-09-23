@@ -29,8 +29,12 @@ const ASME_LOAD_PRESETS = {
     stat_steady: { cm: 1.0, ct: 1.0 }
 };
 
-// ISO 6200 Deep Groove Ball Bearing Series Data
+// ISO 600 & 6200 Deep Groove Ball Bearing Series Data
 const ISO_6200_BEARINGS = [
+    { designation: "606",  bore_mm: 6,  outer_mm: 17, width_mm: 6,  c_dynamic_n: 2250,  c0_static_n: 840 },
+    { designation: "607",  bore_mm: 7,  outer_mm: 19, width_mm: 6,  c_dynamic_n: 2340,  c0_static_n: 880 },
+    { designation: "608",  bore_mm: 8,  outer_mm: 22, width_mm: 7,  c_dynamic_n: 3300,  c0_static_n: 1370 },
+    { designation: "609",  bore_mm: 9,  outer_mm: 24, width_mm: 7,  c_dynamic_n: 3700,  c0_static_n: 1660 },
     { designation: "6200", bore_mm: 10, outer_mm: 30, width_mm: 9,  c_dynamic_n: 5100,  c0_static_n: 2390 },
     { designation: "6201", bore_mm: 12, outer_mm: 32, width_mm: 10, c_dynamic_n: 6800,  c0_static_n: 3050 },
     { designation: "6202", bore_mm: 15, outer_mm: 35, width_mm: 11, c_dynamic_n: 7800,  c0_static_n: 3750 },
@@ -97,10 +101,14 @@ const inputs = {
     cmValue: document.getElementById('cmValue'),
     ctValue: document.getElementById('ctValue'),
 
-    // V-M Diagram Controls
+    // V-M Diagram & Coordinate System Controls
     vmBeamType: document.getElementById('vmBeamType'),
     vmXa: document.getElementById('vmXa'),
-    vmXb: document.getElementById('vmXb')
+    vmXb: document.getElementById('vmXb'),
+    vmOrigin: document.getElementById('vmOrigin'),
+    vmYDir: document.getElementById('vmYDir'),
+    vmMomentSign: document.getElementById('vmMomentSign'),
+    decimalDigits: document.getElementById('decimalDigits')
 };
 
 const outputs = {
@@ -163,14 +171,31 @@ const gearInputs = {
 };
 
 const gearOutputs = {
-    dpDg: document.getElementById('resGearDpDg'),
-    bc: document.getElementById('resGearBC'),
-    vFt: document.getElementById('resGearVFt'),
-    kvFd: document.getElementById('resGearKvFd'),
-    fb: document.getElementById('resGearFb'),
-    bendingStatus: document.getElementById('resGearBendingStatus'),
-    fw: document.getElementById('resGearFw'),
-    wearStatus: document.getElementById('resGearWearStatus'),
+    // Pinion outputs
+    pinionDp: document.getElementById('resPinionDp'),
+    pinionNp: document.getElementById('resPinionNp'),
+    pinionSpeedSigma: document.getElementById('resPinionSpeedSigma'),
+    pinionYIndex: document.getElementById('resPinionYIndex'),
+    pinionFb: document.getElementById('resPinionFb'),
+    pinionBendingStatus: document.getElementById('resPinionBendingStatus'),
+
+    // Gear outputs
+    gearDg: document.getElementById('resGearDg'),
+    gearNg: document.getElementById('resGearNg'),
+    gearSpeedSigma: document.getElementById('resGearSpeedSigma'),
+    gearYIndex: document.getElementById('resGearYIndex'),
+    gearFbVal: document.getElementById('resGearFbVal'),
+    gearBendingStatusVal: document.getElementById('resGearBendingStatusVal'),
+
+    // Mesh pair outputs
+    weaker: document.getElementById('resGearWeaker'),
+    bcVal: document.getElementById('resGearBCVal'),
+    vFtVal: document.getElementById('resGearVFtVal'),
+    kvFdVal: document.getElementById('resGearKvFdVal'),
+    fwVal: document.getElementById('resGearFwVal'),
+    wearStatusVal: document.getElementById('resGearWearStatusVal'),
+
+    // Overall
     verdictBadge: document.getElementById('gearVerdictBadge'),
     tbodyTrial: document.getElementById('tbodyModuleMatrix')
 };
@@ -227,6 +252,23 @@ document.querySelectorAll('.mode-tab-btn, .tab-btn').forEach(btn => {
 });
 
 // Helper Functions
+function getDecimalDigits() {
+    const el = document.getElementById('decimalDigits');
+    return el ? parseInt(el.value) || 4 : 4;
+}
+
+function formatDec(num, digits) {
+    if (num === null || num === undefined || isNaN(num)) return '-';
+    const dec = digits !== undefined ? digits : getDecimalDigits();
+    return Number(num).toFixed(dec);
+}
+
+function formatDecComma(num, digits) {
+    if (num === null || num === undefined || isNaN(num)) return '-';
+    const dec = digits !== undefined ? digits : getDecimalDigits();
+    return Number(num).toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
 function getIsoStandardDiameter(dCalc) {
     for (let std of ISO_STANDARD_DIAMETERS) {
         if (std >= dCalc) return std;
@@ -259,8 +301,8 @@ function renderVmLoadsTable() {
             <td>#${idx + 1}</td>
             <td>
                 <select class="load-dir-select" data-idx="${idx}">
-                    <option value="downward" ${load.dir === 'downward' ? 'selected' : ''}>-Y ชี้ลง (↓)</option>
-                    <option value="upward" ${load.dir === 'upward' ? 'selected' : ''}>+Y ชี้ขึ้น (↑)</option>
+                    <option value="downward" ${load.dir === 'downward' ? 'selected' : ''}>ชี้ลง (↓)</option>
+                    <option value="upward" ${load.dir === 'upward' ? 'selected' : ''}>ชี้ขึ้น (↑)</option>
                 </select>
             </td>
             <td>
@@ -332,6 +374,10 @@ inputs.vmBeamType.addEventListener('change', (e) => {
 // Advanced Multi-Load Vector V-M Diagram Engine
 function updateVmDiagram(L_mm) {
     const beamType = inputs.vmBeamType.value;
+    const originChoice = inputs.vmOrigin ? inputs.vmOrigin.value : 'left';
+    const yDirChoice = inputs.vmYDir ? inputs.vmYDir.value : 'upward';
+    const momentSignChoice = inputs.vmMomentSign ? inputs.vmMomentSign.value : 'sagging';
+
     let xa = 0.0;
     let xb = L_mm;
 
@@ -370,13 +416,15 @@ function updateVmDiagram(L_mm) {
         const term_ra = x >= xa ? Ra : 0;
         const term_rb = x >= xb ? Rb : 0;
         const term_w = signedLoads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n : 0), 0);
-        const v_x = term_ra + term_rb + term_w;
+        let v_x = term_ra + term_rb + term_w;
+        if (yDirChoice === 'downward') v_x = -v_x;
 
         const m_fixed_term = x >= xa ? maFixed : 0;
         const m_ra = Ra * Math.max(x - xa, 0);
         const m_rb = Rb * Math.max(x - xb, 0);
         const m_w = signedLoads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n * (x - l.x_mm) : 0), 0);
-        const m_x = m_fixed_term + m_ra + m_rb + m_w;
+        let m_x = m_fixed_term + m_ra + m_rb + m_w;
+        if (momentSignChoice === 'hogging') m_x = -m_x;
 
         vPoints.push(v_x);
         mPoints.push(m_x);
@@ -388,12 +436,17 @@ function updateVmDiagram(L_mm) {
 
     lastCalculatedMmaxNm = Mmax_nm;
 
-    outputs.resVmRa.innerText = `${Ra > 0 ? '+' : ''}${Ra.toFixed(1)} N (${Ra >= 0 ? '↑' : '↓'})`;
-    outputs.resVmRb.innerText = beamType === 'cantilever' ? `M_fixed = ${(maFixed/1000).toFixed(2)} N-m` : `${Rb > 0 ? '+' : ''}${Rb.toFixed(1)} N (${Rb >= 0 ? '↑' : '↓'})`;
-    outputs.resVmVmax.innerText = `${Vmax.toFixed(1)} N`;
-    outputs.resVmMmaxNm.innerText = `${Mmax_nm.toFixed(2)} N-m`;
-    outputs.resVmMmaxNmm.innerText = `${Math.round(Mmax_nmm).toLocaleString()} N-mm`;
-    btnSyncMoment.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (${Mmax_nm.toFixed(2)} N-m) เข้าไปคำนวณเพลาหลักทันที`;
+    const raDisp = yDirChoice === 'downward' ? -Ra : Ra;
+    const rbDisp = yDirChoice === 'downward' ? -Rb : Rb;
+
+    outputs.resVmRa.innerText = `${raDisp >= 0 ? '+' : ''}${formatDec(raDisp)} N (${Ra >= 0 ? '↑' : '↓'})`;
+    outputs.resVmRb.innerText = beamType === 'cantilever' 
+        ? `M_fixed = ${formatDec(maFixed/1000)} N-m` 
+        : `${rbDisp >= 0 ? '+' : ''}${formatDec(rbDisp)} N (${Rb >= 0 ? '↑' : '↓'})`;
+    outputs.resVmVmax.innerText = `${formatDec(Vmax)} N`;
+    outputs.resVmMmaxNm.innerText = `${formatDec(Mmax_nm)} N-m`;
+    outputs.resVmMmaxNmm.innerText = `${formatDecComma(Mmax_nmm)} N-mm`;
+    btnSyncMoment.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (${formatDec(Mmax_nm)} N-m) เข้าไปตั้งค่า Bending Moment หลัก (Optional Sync)`;
 
     drawMultiLoadSFD(L_mm, xPoints, vPoints, Vmax, beamType, xa, xb);
     drawMultiLoadBMD(L_mm, xPoints, mPoints, Mmax_nm, Mmax_nmm, beamType);
@@ -581,20 +634,20 @@ function calculate() {
     const n_yield = sigma_max_vm > 0 ? Sy / sigma_max_vm : 99.0;
 
     outputs.resIsoDia.innerText = `${d_iso} mm`;
-    outputs.resCalcDia.innerText = `${d_calc.toFixed(2)} mm`;
-    outputs.resTorque.innerText = `${T_nm.toFixed(2)} N-m`;
-    outputs.resTorqueNmm.innerText = `${Math.round(T_nmm).toLocaleString()} N-mm`;
-    outputs.resTwistDeg.innerText = `${theta_deg.toFixed(3)}°`;
-    outputs.resTwistPerM.innerText = `${theta_per_m.toFixed(2)} deg/m`;
-    outputs.resCriticalSpeed.innerText = `${Math.round(nc_rpm).toLocaleString()} RPM`;
+    outputs.resCalcDia.innerText = `${formatDec(d_calc)} mm`;
+    outputs.resTorque.innerText = `${formatDec(T_nm)} N-m`;
+    outputs.resTorqueNmm.innerText = `${formatDecComma(T_nmm)} N-mm`;
+    outputs.resTwistDeg.innerText = `${formatDec(theta_deg)}°`;
+    outputs.resTwistPerM.innerText = `${formatDec(theta_per_m)} deg/m`;
+    outputs.resCriticalSpeed.innerText = `${formatDecComma(nc_rpm)} RPM`;
 
     const isSafeOperating = N < 0.75 * nc_rpm || N > 1.25 * nc_rpm;
-    outputs.resOperatingCheck.innerText = `N = ${N} RPM (${isSafeOperating ? 'Safe Range' : '⚠️ Resonance Warning'})`;
+    outputs.resOperatingCheck.innerText = `N = ${formatDec(N)} RPM (${isSafeOperating ? 'Safe Range' : '⚠️ Resonance Warning'})`;
 
-    outputs.resTauD.innerText = `${tau_d.toFixed(1)} MPa`;
-    outputs.resAlpha.innerText = alpha.toFixed(2);
-    outputs.resYieldFos.innerText = n_yield.toFixed(2);
-    outputs.resGoodmanFos.innerText = n_goodman.toFixed(2);
+    outputs.resTauD.innerText = `${formatDec(tau_d)} MPa`;
+    outputs.resAlpha.innerText = formatDec(alpha);
+    outputs.resYieldFos.innerText = formatDec(n_yield);
+    outputs.resGoodmanFos.innerText = formatDec(n_goodman);
 
     if (n_goodman >= targetFos && n_yield >= targetFos && isSafeOperating) {
         outputs.verdictBadge.className = 'verdict-tag verdict-pass';
@@ -640,27 +693,56 @@ function calculateBearing() {
     const l10Hours = (1e6 / (60.0 * n)) * l10Mr;
     const years = l10Hours / (24.0 * 365.25);
 
-    bearingOutputs.pEq.innerText = `${pEqFinal.toFixed(1)} N`;
-    bearingOutputs.l10Mr.innerText = `${Math.round(l10Mr).toLocaleString()} ล้านรอบ`;
-    bearingOutputs.l10Hours.innerText = `${Math.round(l10Hours).toLocaleString()} ชั่วโมง`;
-    bearingOutputs.years.innerText = `${years.toFixed(1)} ปี (24/7)`;
+    bearingOutputs.pEq.innerText = `${formatDec(pEqFinal)} N`;
+    bearingOutputs.l10Mr.innerText = `${formatDecComma(l10Mr)} ล้านรอบ`;
+    bearingOutputs.l10Hours.innerText = `${formatDecComma(l10Hours)} ชั่วโมง`;
+    bearingOutputs.years.innerText = `${formatDec(years)} ปี (24/7)`;
+
+    // Automatic Bearing Recommendation Engine
+    let recommendedBearing = ISO_6200_BEARINGS.find(b => b.bore_mm === d);
+    if (!recommendedBearing) {
+        recommendedBearing = ISO_6200_BEARINGS.find(b => b.bore_mm > d) || ISO_6200_BEARINGS[ISO_6200_BEARINGS.length - 1];
+    }
+
+    const reqL10h = 12000;
+    const reqL10 = (60.0 * n * reqL10h) / 1e6;
+    const reqC = pEqFinal * Math.pow(reqL10, 1.0 / k);
+
+    let adequateBearing = ISO_6200_BEARINGS.find(b => b.bore_mm >= d && b.c_dynamic_n >= reqC);
+    if (adequateBearing) {
+        recommendedBearing = adequateBearing;
+    }
+
+    const recNameEl = document.getElementById('recBearingName');
+    const recDetailEl = document.getElementById('recBearingDetail');
+    if (recNameEl && recDetailEl && recommendedBearing) {
+        const recL10Mr = Math.pow(recommendedBearing.c_dynamic_n / pEqFinal, k);
+        const recL10Hours = (1e6 / (60.0 * n)) * recL10Mr;
+        const recYears = recL10Hours / (24.0 * 365.25);
+        recNameEl.innerText = `ISO ${recommendedBearing.designation}`;
+        recDetailEl.innerText = `ขนาดรูเพลา d = ${recommendedBearing.bore_mm} mm | โตนอก D = ${recommendedBearing.outer_mm} mm | หนา B = ${recommendedBearing.width_mm} mm | Dynamic Capacity C = ${recommendedBearing.c_dynamic_n.toLocaleString()} N (คาดการณ์อายุใช้งาน: ${formatDecComma(recL10Hours)} ชั่วโมง / ${formatDec(recYears)} ปี)`;
+    }
 
     bearingOutputs.tbody.innerHTML = '';
     ISO_6200_BEARINGS.forEach(b => {
         const tr = document.createElement('tr');
-        if (b.bore_mm === d || (b.bore_mm > d && !bearingOutputs.foundMatch)) {
+        const isRecommended = recommendedBearing && b.designation === recommendedBearing.designation;
+        if (isRecommended) {
             tr.className = 'highlight-row';
-            bearingOutputs.foundMatch = true;
+            tr.style.backgroundColor = '#f0fdf4';
         }
         tr.innerHTML = `
-            <td><strong>ISO ${b.designation}</strong></td>
+            <td>
+                <strong>ISO ${b.designation}</strong>
+                ${isRecommended ? '<span class="status-badge pass" style="margin-left:6px;"><i class="fa-solid fa-star"></i> แนะนำ (Recommended)</span>' : ''}
+            </td>
             <td>${b.bore_mm} mm</td>
             <td>${b.outer_mm} mm</td>
             <td>${b.width_mm} mm</td>
             <td><strong>${b.c_dynamic_n.toLocaleString()} N</strong></td>
             <td>
                 <button class="btn-scientific btn-select-bearing" data-c="${b.c_dynamic_n}" data-des="${b.designation}">
-                    <i class="fa-solid fa-check"></i> เลือก (C=${b.c_dynamic_n}N)
+                    <i class="fa-solid fa-check"></i> เลือกใช้งาน (C=${b.c_dynamic_n.toLocaleString()}N)
                 </button>
             </td>
         `;
@@ -693,6 +775,7 @@ function calculateGear() {
     const Ng = Math.round(Np * mw);
     const dp = m * Np;
     const dg = m * Ng;
+    const ng = N1 / mw;
     const b = kb * m;
     const Ccenter = (dp + dg) / 2.0;
 
@@ -708,79 +791,120 @@ function calculateGear() {
     const Yp = lookupLewisY(Np);
     const Yg = lookupLewisY(Ng);
 
+    const indexP = sigmaP * Yp;
+    const indexG = sigmaG * Yg;
+
     const Fb_pinion = (sigmaP * b * m * Yp) / kf;
     const Fb_gear = (sigmaG * b * m * Yg) / kf;
-    const Fb_governing = Math.min(Fb_pinion, Fb_gear);
 
     const Q = (2.0 * Ng) / (Np + Ng);
     const Fw = dp * b * Q * wearK;
 
-    const bendingPass = Fb_governing >= Fd;
+    const pinionBendingPass = Fb_pinion >= Fd;
+    const gearBendingPass = Fb_gear >= Fd;
     const wearPass = Fw >= Fd;
-    const overallPass = bendingPass && wearPass;
+    const overallPass = pinionBendingPass && gearBendingPass && wearPass;
 
-    gearOutputs.dpDg.innerText = `${dp.toFixed(1)} mm / ${dg.toFixed(1)} mm`;
-    gearOutputs.bc.innerText = `b = ${b.toFixed(1)} mm | C = ${Ccenter.toFixed(1)} mm`;
-    gearOutputs.vFt.innerText = `V = ${V.toFixed(2)} m/s | Ft = ${Ft.toFixed(1)} N`;
-    gearOutputs.kvFd.innerText = `Kv = ${Kv.toFixed(2)} | Fd = ${Math.round(Fd).toLocaleString()} N`;
-    gearOutputs.fb.innerText = `Fb = ${Math.round(Fb_governing).toLocaleString()} N`;
-    gearOutputs.bendingStatus.innerHTML = `<span class="status-badge ${bendingPass ? 'pass' : 'warn'}">${bendingPass ? 'PASS: Safe' : 'FAIL: Fracture'}</span>`;
-    gearOutputs.fw.innerText = `Fw = ${Math.round(Fw).toLocaleString()} N`;
-    gearOutputs.wearStatus.innerHTML = `<span class="status-badge ${wearPass ? 'pass' : 'warn'}">${wearPass ? 'PASS: Safe' : 'FAIL: Pitting'}</span>`;
+    // 1. Pinion Outputs
+    if (gearOutputs.pinionDp) gearOutputs.pinionDp.innerText = `${formatDec(dp)} mm`;
+    if (gearOutputs.pinionNp) gearOutputs.pinionNp.innerText = `Np = ${Np} teeth`;
+    if (gearOutputs.pinionSpeedSigma) gearOutputs.pinionSpeedSigma.innerText = `${formatDec(N1, 0)} rpm | ${formatDec(sigmaP)} N/mm²`;
+    if (gearOutputs.pinionYIndex) gearOutputs.pinionYIndex.innerText = `Yp = ${formatDec(Yp, 4)} | Index = ${formatDec(indexP)} N/mm²`;
+    if (gearOutputs.pinionFb) gearOutputs.pinionFb.innerHTML = `<strong class="primary-val">${formatDecComma(Fb_pinion)} N</strong>`;
+    if (gearOutputs.pinionBendingStatus) gearOutputs.pinionBendingStatus.innerHTML = `<span class="status-badge ${pinionBendingPass ? 'pass' : 'warn'}">${pinionBendingPass ? 'PASS: Safe' : 'FAIL: Fracture'}</span>`;
 
-    if (overallPass) {
-        gearOutputs.verdictBadge.className = 'verdict-tag verdict-pass';
-        gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-check"></i> DESIGN SAFE';
-    } else {
-        gearOutputs.verdictBadge.className = 'verdict-tag verdict-warn';
-        gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> UNSAFE DESIGN';
+    // 2. Gear Outputs
+    if (gearOutputs.gearDg) gearOutputs.gearDg.innerText = `${formatDec(dg)} mm`;
+    if (gearOutputs.gearNg) gearOutputs.gearNg.innerText = `Ng = ${Ng} teeth`;
+    if (gearOutputs.gearSpeedSigma) gearOutputs.gearSpeedSigma.innerText = `${formatDec(ng)} rpm | ${formatDec(sigmaG)} N/mm²`;
+    if (gearOutputs.gearYIndex) gearOutputs.gearYIndex.innerText = `Yg = ${formatDec(Yg, 4)} | Index = ${formatDec(indexG)} N/mm²`;
+    if (gearOutputs.gearFbVal) gearOutputs.gearFbVal.innerHTML = `<strong class="primary-val">${formatDecComma(Fb_gear)} N</strong>`;
+    if (gearOutputs.gearBendingStatusVal) gearOutputs.gearBendingStatusVal.innerHTML = `<span class="status-badge ${gearBendingPass ? 'pass' : 'warn'}">${gearBendingPass ? 'PASS: Safe' : 'FAIL: Fracture'}</span>`;
+
+    // 3. Mesh Pair Transmission & Wear Verification
+    let weakerLabel = "Pinion & Gear Equal Strength";
+    if (indexP < indexG) weakerLabel = "Pinion governs (อ่อนแอกว่า)";
+    else if (indexG < indexP) weakerLabel = "Gear governs (อ่อนแอกว่า)";
+
+    if (gearOutputs.weaker) gearOutputs.weaker.innerHTML = `<strong id="resWeakerText">${weakerLabel}</strong>`;
+    if (gearOutputs.bcVal) gearOutputs.bcVal.innerText = `b = ${formatDec(b)} mm | C = ${formatDec(Ccenter)} mm`;
+    if (gearOutputs.vFtVal) gearOutputs.vFtVal.innerText = `V = ${formatDec(V)} m/s | Ft = ${formatDec(Ft)} N`;
+    if (gearOutputs.kvFdVal) gearOutputs.kvFdVal.innerText = `Kv = ${formatDec(Kv)} | Fd = ${formatDecComma(Fd)} N`;
+    if (gearOutputs.fwVal) gearOutputs.fwVal.innerText = `Fw = ${formatDecComma(Fw)} N`;
+    if (gearOutputs.wearStatusVal) gearOutputs.wearStatusVal.innerHTML = `<span class="status-badge ${wearPass ? 'pass' : 'warn'}">${wearPass ? 'PASS: Safe' : 'FAIL: Pitting'}</span>`;
+
+    // Overall Verdict
+    if (gearOutputs.verdictBadge) {
+        if (overallPass) {
+            gearOutputs.verdictBadge.className = 'verdict-tag verdict-pass';
+            gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-check"></i> DESIGN SAFE';
+        } else {
+            gearOutputs.verdictBadge.className = 'verdict-tag verdict-warn';
+            gearOutputs.verdictBadge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> UNSAFE DESIGN';
+        }
     }
 
-    // Render Module Trial Matrix Table (m = 2.0 to 9.0 mm)
-    gearOutputs.tbodyTrial.innerHTML = '';
-    const trialModules = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
-    trialModules.forEach(mod => {
-        const t_dp = mod * Np;
-        const t_b = kb * mod;
-        const t_V = (Math.PI * t_dp * N1) / 60000.0;
-        const t_Ft = t_V > 0 ? P / t_V : 0;
-        let t_Kv = (3.0 + t_V) / 3.0;
-        const t_Fd = t_Ft * t_Kv;
+    // 4. Render Module Trial Matrix Table (m = 2.0 to 9.0 mm)
+    if (gearOutputs.tbodyTrial) {
+        gearOutputs.tbodyTrial.innerHTML = '';
+        const trialModules = [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
+        trialModules.forEach(mod => {
+            const t_dp = mod * Np;
+            const t_dg = mod * Ng;
+            const t_b = kb * mod;
+            const t_V = (Math.PI * t_dp * N1) / 60000.0;
+            const t_Ft = t_V > 0 ? P / t_V : 0;
+            let t_Kv = (3.0 + t_V) / 3.0;
+            if (profileQuality === 'cut') t_Kv = (6.0 + t_V) / 6.0;
+            if (profileQuality === 'precision') t_Kv = (5.6 + Math.sqrt(t_V)) / 5.6;
+            const t_Fd = t_Ft * t_Kv;
 
-        const t_Fb_p = (sigmaP * t_b * mod * Yp) / kf;
-        const t_Fb_g = (sigmaG * t_b * mod * Yg) / kf;
-        const t_Fb = Math.min(t_Fb_p, t_Fb_g);
+            const t_Fb_p = (sigmaP * t_b * mod * Yp) / kf;
+            const t_Fb_g = (sigmaG * t_b * mod * Yg) / kf;
 
-        const t_Fw = t_dp * t_b * Q * wearK;
-        const t_pass = t_Fb >= t_Fd && t_Fw >= t_Fd;
+            const t_Fw = t_dp * t_b * Q * wearK;
+            const t_pass = (t_Fb_p >= t_Fd) && (t_Fb_g >= t_Fd) && (t_Fw >= t_Fd);
 
-        const tr = document.createElement('tr');
-        if (mod === m) tr.className = 'highlight-row';
-        tr.innerHTML = `
-            <td><strong>m = ${mod.toFixed(1)} mm</strong></td>
-            <td>${t_b.toFixed(0)} mm</td>
-            <td>${t_dp.toFixed(0)} mm</td>
-            <td>${Math.round(t_Fd).toLocaleString()} N</td>
-            <td>${Math.round(t_Fb).toLocaleString()} N</td>
-            <td>${Math.round(t_Fw).toLocaleString()} N</td>
-            <td>
-                <span class="status-badge ${t_pass ? 'pass' : 'warn'}">${t_pass ? 'Safe' : 'Unsafe'}</span>
-            </td>
-        `;
-        gearOutputs.tbodyTrial.appendChild(tr);
-    });
+            const tr = document.createElement('tr');
+            if (mod === m) tr.className = 'highlight-row';
+            tr.innerHTML = `
+                <td><strong>m = ${formatDec(mod, 1)} mm</strong></td>
+                <td>${formatDec(t_b, 1)} mm</td>
+                <td>${formatDec(t_dp, 1)} / ${formatDec(t_dg, 1)} mm</td>
+                <td>${formatDecComma(t_Fd)} N</td>
+                <td>${formatDecComma(t_Fb_p)} N</td>
+                <td>${formatDecComma(t_Fb_g)} N</td>
+                <td>${formatDecComma(t_Fw)} N</td>
+                <td>
+                    <span class="status-badge ${t_pass ? 'pass' : 'warn'}">${t_pass ? 'Safe' : 'Unsafe'}</span>
+                </td>
+            `;
+            gearOutputs.tbodyTrial.appendChild(tr);
+        });
+    }
 }
 
 // Render KaTeX Formulas dynamically
 function renderKaTeXMath() {
+    const doRender = () => {
+        if (typeof renderMathInElement === 'function') {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '$', right: '$', display: false }
+                ],
+                throwOnError: false
+            });
+        }
+    };
+
     if (typeof renderMathInElement === 'function') {
-        renderMathInElement(document.body, {
-            delimiters: [
-                { left: '$$', right: '$$', display: true },
-                { left: '\\(', right: '\\)', display: false }
-            ],
-            throwOnError: false
-        });
+        doRender();
+    } else {
+        window.addEventListener('load', doRender);
+        document.addEventListener('DOMContentLoaded', doRender);
+        setTimeout(doRender, 500);
     }
 }
 
@@ -905,8 +1029,23 @@ function setActiveButton(btnId) {
 // Event Listeners for Shaft Inputs
 Object.values(inputs).forEach(input => {
     if (input) {
-        input.addEventListener('input', calculate);
-        input.addEventListener('change', calculate);
+        input.addEventListener('input', () => {
+            calculate();
+            if (input.id === 'decimalDigits') {
+                calculateBearing();
+                calculateGear();
+            }
+        });
+        input.addEventListener('change', () => {
+            if (input.id === 'vmYDir') {
+                renderVmLoadsTable();
+            }
+            calculate();
+            if (input.id === 'decimalDigits') {
+                calculateBearing();
+                calculateGear();
+            }
+        });
     }
 });
 
