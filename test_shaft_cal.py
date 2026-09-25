@@ -119,5 +119,23 @@ class TestFRA232ComprehensiveSuite(unittest.TestCase):
         # Verify Fy equilibrium: Ra + Rb + W1 + W2 = 290 + 10 - 500 + 200 = 0
         self.assertAlmostEqual(vm["ra_n"] + vm["rb_n"] + sum(l["w_n"] for l in loads), 0.0)
 
+    def test_16_pom_plastic_critical_speed(self):
+        """
+        [Test Case 16] การคำนวณความเร็วรอบวิกฤตสำหรับวัสดุพลาสติก POM (E = 3000 MPa)
+        - เปรียบเทียบกับเหล็ก (E = 205000 MPa)
+        - ค่า Critical Speed (Nc) ของ POM ต้องต่ำกว่าเหล็กเนื่องจากโก่งตัวง่ายกว่า
+        """
+        shaft_steel = AdvancedMechanicalShaft(e_mpa=205000.0)
+        res_steel = shaft_steel.calculate_critical_speed(loads_n=[10.0], distances_mm=[50.0], total_length_mm=100.0, d_mm=10.0)
+
+        shaft_pom = AdvancedMechanicalShaft(e_mpa=3000.0)
+        res_pom = shaft_pom.calculate_critical_speed(loads_n=[10.0], distances_mm=[50.0], total_length_mm=100.0, d_mm=10.0)
+
+        self.assertGreater(res_steel["nc_rpm"], res_pom["nc_rpm"])
+        # Ratio Nc_steel / Nc_pom should be approx sqrt(205000 / 3000) = sqrt(68.33) ≈ 8.266
+        expected_ratio = math.sqrt(205000.0 / 3000.0)
+        actual_ratio = res_steel["nc_rpm"] / res_pom["nc_rpm"]
+        self.assertAlmostEqual(actual_ratio, expected_ratio, places=2)
+
 if __name__ == "__main__":
     unittest.main()

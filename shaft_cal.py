@@ -227,18 +227,19 @@ class AdvancedMechanicalShaft:
             "theta_deg_per_m": theta_deg_per_m
         }
 
-    def calculate_critical_speed(self, loads_n, distances_mm, total_length_mm, d_mm=None):
+    def calculate_critical_speed(self, loads_n, distances_mm, total_length_mm, d_mm=None, e_mpa=None):
         d = float(d_mm) if d_mm is not None else self.d
         if d is None or d <= 0:
             raise ValueError("ต้องระบุขนาดเส้นผ่านศูนย์กลางเพลา (d_mm)")
             
+        e_val = float(e_mpa) if e_mpa is not None else self.e
         i_inertia = (math.pi * (d**4)) / 64.0
         sum_wy = 0.0
         sum_wy2 = 0.0
         deflections_mm = []
 
         for w, x in zip(loads_n, distances_mm):
-            y = (float(w) * (float(total_length_mm)**3)) / (48.0 * self.e * i_inertia)
+            y = (float(w) * (float(total_length_mm)**3)) / (48.0 * e_val * i_inertia)
             deflections_mm.append(y)
             sum_wy += float(w) * y
             sum_wy2 += float(w) * (y**2)

@@ -7,10 +7,11 @@ const ISO_STANDARD_DIAMETERS = [
 
 // Material Presets
 const MATERIAL_PRESETS = {
-    SS400: { sy: 250, sut: 400 },
-    AISI1020: { sy: 290, sut: 380 },
-    AISI1045: { sy: 310, sut: 570 },
-    AISI4140: { sy: 415, sut: 655 }
+    SS400: { sy: 250, sut: 400, e_gpa: 205 },
+    AISI1020: { sy: 290, sut: 380, e_gpa: 205 },
+    AISI1045: { sy: 310, sut: 570, e_gpa: 205 },
+    AISI4140: { sy: 415, sut: 655, e_gpa: 205 },
+    POM: { sy: 68, sut: 70, e_gpa: 3.0 }
 };
 
 // Stress Concentration Presets
@@ -95,6 +96,7 @@ const inputs = {
     materialPreset: document.getElementById('materialPreset'),
     yieldStrength: document.getElementById('yieldStrength'),
     tensileStrength: document.getElementById('tensileStrength'),
+    elasticModulus: document.getElementById('elasticModulus'),
     fos: document.getElementById('fos'),
     hasKeyway: document.getElementById('hasKeyway'),
     loadType: document.getElementById('loadType'),
@@ -567,6 +569,7 @@ function calculate() {
     const Kts = parseFloat(inputs.ktsValue.value) || 1.0;
     const Sy = parseFloat(inputs.yieldStrength.value) || 250;
     const Sut = parseFloat(inputs.tensileStrength.value) || 400;
+    const E_gpa = parseFloat(inputs.elasticModulus.value) || 205;
     const targetFos = parseFloat(inputs.fos.value) || 2.0;
     const hasKeyway = inputs.hasKeyway.value === 'true';
 
@@ -580,7 +583,7 @@ function calculate() {
 
     const tau_d = hasKeyway ? 41.0 : 55.0;
 
-    const E = 205000.0;
+    const E = E_gpa * 1000.0;
     let d_curr = 10.0;
     let alpha = 1.0;
 
@@ -1048,6 +1051,29 @@ Object.values(inputs).forEach(input => {
         });
     }
 });
+
+if (inputs.materialPreset) {
+    inputs.materialPreset.addEventListener('change', () => {
+        const val = inputs.materialPreset.value;
+        if (val && MATERIAL_PRESETS[val]) {
+            inputs.yieldStrength.value = MATERIAL_PRESETS[val].sy;
+            inputs.tensileStrength.value = MATERIAL_PRESETS[val].sut;
+            inputs.elasticModulus.value = MATERIAL_PRESETS[val].e_gpa;
+        }
+        calculate();
+    });
+}
+
+if (inputs.scPreset) {
+    inputs.scPreset.addEventListener('change', () => {
+        const val = inputs.scPreset.value;
+        if (val && SC_PRESETS[val]) {
+            inputs.ktValue.value = SC_PRESETS[val].kt;
+            inputs.ktsValue.value = SC_PRESETS[val].kts;
+        }
+        calculate();
+    });
+}
 
 // Event Listeners for Bearing Inputs
 Object.values(bearingInputs).forEach(input => {

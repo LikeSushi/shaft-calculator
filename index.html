@@ -174,10 +174,11 @@
                         <div class="field-group mb-2">
                             <label for="materialPreset">Material Standard Grade</label>
                             <select id="materialPreset">
-                                <option value="SS400" selected>SS400 / Structural Steel (Sy=250, Sut=400 MPa)</option>
-                                <option value="AISI1020">AISI 1020 Cold Drawn (Sy=290, Sut=380 MPa)</option>
-                                <option value="AISI1045">AISI 1045 Cold Drawn (Sy=310, Sut=570 MPa)</option>
-                                <option value="AISI4140">AISI 4140 Alloy Steel (Sy=415, Sut=655 MPa)</option>
+                                <option value="SS400" selected>SS400 / Structural Steel (Sy=250, Sut=400 MPa, E=205 GPa)</option>
+                                <option value="AISI1020">AISI 1020 Cold Drawn (Sy=290, Sut=380 MPa, E=205 GPa)</option>
+                                <option value="AISI1045">AISI 1045 Cold Drawn (Sy=310, Sut=570 MPa, E=205 GPa)</option>
+                                <option value="AISI4140">AISI 4140 Alloy Steel (Sy=415, Sut=655 MPa, E=205 GPa)</option>
+                                <option value="POM">POM Plastic / Polyoxymethylene (Sy=68, Sut=70 MPa, E=3 GPa)</option>
                                 <option value="CUSTOM">Custom Material Properties</option>
                             </select>
                         </div>
@@ -196,6 +197,14 @@
                                     <input type="number" id="tensileStrength" value="400" step="any">
                                     <span class="unit-tag">MPa</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="field-group mb-2">
+                            <label for="elasticModulus">Elastic Modulus (E)</label>
+                            <div class="unit-wrapper">
+                                <input type="number" id="elasticModulus" value="205" step="any">
+                                <span class="unit-tag">GPa</span>
                             </div>
                         </div>
 
