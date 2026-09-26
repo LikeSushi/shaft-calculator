@@ -628,26 +628,25 @@ function drawZyCrossSectionCanvas() {
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
 
-    // Z Axis (Horizontal)
+    // X Axis (Horizontal) & Z Axis (Vertical)
     ctx.beginPath();
     ctx.moveTo(30, centerY);
     ctx.lineTo(width - 30, centerY);
     ctx.stroke();
 
-    // Y Axis (Vertical)
     ctx.beginPath();
     ctx.moveTo(centerX, 20);
     ctx.lineTo(centerX, height - 20);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Axis Labels
+    // Axis Labels for X-Z Cross Section
     ctx.fillStyle = '#64748b';
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.fillText('+Y (Up ↑)', centerX + 6, 25);
-    ctx.fillText('-Y (Down ↓)', centerX + 6, height - 12);
-    ctx.fillText('+Z (Right →)', width - 75, centerY - 8);
-    ctx.fillText('-Z (Left ←)', 15, centerY - 8);
+    ctx.fillText('+Z (ระนาบ ZY ↑)', centerX + 6, 25);
+    ctx.fillText('-Z (ระนาบ ZY ↓)', centerX + 6, height - 12);
+    ctx.fillText('+X (ระนาบ XY →)', width - 95, centerY - 8);
+    ctx.fillText('-X (ระนาบ XY ←)', 10, centerY - 8);
 
     // Shaft Circular Cross-Section
     ctx.fillStyle = '#f1f5f9';

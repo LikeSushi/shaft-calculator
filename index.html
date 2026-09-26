@@ -468,12 +468,12 @@
                             </button>
                         </div>
 
-                        <!-- 3D DUAL-PLANE & Z-Y CROSS-SECTION DIAGRAM MODE SELECTOR -->
+                        <!-- 3D DUAL-PLANE & X-Z CROSS-SECTION DIAGRAM MODE SELECTOR -->
                         <div class="mb-3" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-                            <button class="btn-scientific active" id="btnVmModeRes" style="font-size: 12px;"><i class="fa-solid fa-cube"></i> 3D Resultant Vector ($\sqrt{XY^2 + XZ^2}$)</button>
-                            <button class="btn-scientific" id="btnVmModeXY" style="font-size: 12px;"><i class="fa-solid fa-arrows-up-down"></i> XY Vertical Plane (V<sub>y</sub> / M<sub>y</sub>)</button>
-                            <button class="btn-scientific" id="btnVmModeXZ" style="font-size: 12px;"><i class="fa-solid fa-arrows-left-right"></i> XZ Horizontal Plane (V<sub>z</sub> / M<sub>z</sub>)</button>
-                            <button class="btn-scientific" id="btnVmModeZY" style="font-size: 12px;"><i class="fa-solid fa-circle-dot"></i> ZY Cross-Section View (Vector Diagram)</button>
+                            <button class="btn-scientific active" id="btnVmModeRes" style="font-size: 12px;"><i class="fa-solid fa-cube"></i> 3D Resultant Vector ($\sqrt{XY^2 + ZY^2}$)</button>
+                            <button class="btn-scientific" id="btnVmModeXY" style="font-size: 12px;"><i class="fa-solid fa-arrows-up-down"></i> ระนาบ X-Y (Longitudinal 1)</button>
+                            <button class="btn-scientific" id="btnVmModeXZ" style="font-size: 12px;"><i class="fa-solid fa-arrows-left-right"></i> ระนาบ Z-Y (Longitudinal 2)</button>
+                            <button class="btn-scientific" id="btnVmModeZY" style="font-size: 12px;"><i class="fa-solid fa-circle-dot"></i> ระนาบตัดขวาง X-Z (Cross-Section View)</button>
                         </div>
 
                         <div class="diagram-box mb-3" id="boxSfdCanvas">
@@ -491,7 +491,7 @@
                         </div>
 
                         <div class="diagram-box" id="boxZyCanvas" style="display: none;">
-                            <div class="diagram-caption"><i class="fa-solid fa-circle-dot"></i> Figure 2c: Z-Y Shaft Cross-Sectional Force Vector Distribution</div>
+                            <div class="diagram-caption"><i class="fa-solid fa-circle-dot"></i> Figure 2c: X-Z Shaft Cross-Sectional Force Vector Distribution (ระนาบตัดขวางเพลา X-Z)</div>
                             <div class="canvas-paper">
                                 <canvas id="zyCanvas" width="600" height="220"></canvas>
                             </div>
