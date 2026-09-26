@@ -79,7 +79,7 @@ function lookupLewisY(teethCount) {
 // State for Multi-Load V-M Diagram Engine
 let activeVmPlaneMode = 'res';
 let vmLoadsList = [
-    { w_n: 800, dir: 'downward', plane: 'xy', x_mm: 50 }
+    { w_n: 800, dir: 'down_y', plane: 'xy', x_mm: 50 }
 ];
 
 // DOM Elements - Shaft Tab
@@ -300,19 +300,15 @@ function renderVmLoadsTable() {
     vmLoadsTbody.innerHTML = '';
     vmLoadsList.forEach((load, idx) => {
         const tr = document.createElement('tr');
-        const planeVal = load.plane || 'xy';
+        const dirVal = load.dir || 'down_y';
         tr.innerHTML = `
             <td>#${idx + 1}</td>
             <td>
-                <select class="load-plane-select" data-idx="${idx}">
-                    <option value="xy" ${planeVal === 'xy' ? 'selected' : ''}>ระนาบตั้ง (XY - Fy)</option>
-                    <option value="xz" ${planeVal === 'xz' ? 'selected' : ''}>ระนาบนอน (XZ - Fz)</option>
-                </select>
-            </td>
-            <td>
                 <select class="load-dir-select" data-idx="${idx}">
-                    <option value="downward" ${load.dir === 'downward' ? 'selected' : ''}>ชี้ลง (↓)</option>
-                    <option value="upward" ${load.dir === 'upward' ? 'selected' : ''}>ชี้ขึ้น (↑)</option>
+                    <option value="up_y" ${dirVal === 'up_y' || (dirVal === 'upward' && load.plane === 'xy') ? 'selected' : ''}>+Y ชี้ขึ้น (↑ Vertical)</option>
+                    <option value="down_y" ${dirVal === 'down_y' || (dirVal === 'downward' && load.plane === 'xy') ? 'selected' : ''}>-Y ชี้ลง (↓ Vertical)</option>
+                    <option value="right_z" ${dirVal === 'right_z' || (dirVal === 'upward' && load.plane === 'xz') ? 'selected' : ''}>+Z ชี้ขวา (→ Horizontal)</option>
+                    <option value="left_z" ${dirVal === 'left_z' || (dirVal === 'downward' && load.plane === 'xz') ? 'selected' : ''}>-Z ชี้ซ้าย (← Horizontal)</option>
                 </select>
             </td>
             <td>
@@ -334,18 +330,16 @@ function renderVmLoadsTable() {
         vmLoadsTbody.appendChild(tr);
     });
 
-    document.querySelectorAll('.load-plane-select').forEach(select => {
-        select.addEventListener('change', (e) => {
-            const idx = parseInt(e.target.getAttribute('data-idx'));
-            vmLoadsList[idx].plane = e.target.value;
-            calculate();
-        });
-    });
-
     document.querySelectorAll('.load-dir-select').forEach(select => {
         select.addEventListener('change', (e) => {
             const idx = parseInt(e.target.getAttribute('data-idx'));
-            vmLoadsList[idx].dir = e.target.value;
+            const val = e.target.value;
+            vmLoadsList[idx].dir = val;
+            if (val === 'up_y' || val === 'down_y') {
+                vmLoadsList[idx].plane = 'xy';
+            } else {
+                vmLoadsList[idx].plane = 'xz';
+            }
             calculate();
         });
     });
@@ -378,7 +372,7 @@ function renderVmLoadsTable() {
 
 btnAddLoadRow.addEventListener('click', () => {
     const L_mm = parseFloat(inputs.shaftLength.value) || 100;
-    vmLoadsList.push({ w_n: 200, dir: 'downward', plane: 'xy', x_mm: Math.round(L_mm / 2) });
+    vmLoadsList.push({ w_n: 200, dir: 'down_y', plane: 'xy', x_mm: Math.round(L_mm / 2) });
     renderVmLoadsTable();
     calculate();
 });
@@ -503,6 +497,7 @@ function updateVmDiagram(L_mm) {
 
     drawMultiLoadSFD(L_mm, resXY.xPoints, activeVPoints, activeVmax || 1, beamType, xa, xb);
     drawMultiLoadBMD(L_mm, resXY.xPoints, activeMPoints, activeMmaxNm, activeMmaxNmm || 1, beamType);
+    drawZyCrossSectionCanvas();
 }
 
 // Draw SFD & BMD
@@ -605,6 +600,116 @@ function drawMultiLoadBMD(L, xPoints, mPoints, MmaxNm, MmaxNmm, beamType) {
     ctxBMD.textAlign = 'center';
     const textY = peakPy > centerY ? peakPy + 16 : peakPy - 8;
     ctxBMD.fillText(`M_max = ${MmaxNm.toFixed(2)} N-m`, peakPx, textY);
+}
+
+// Z-Y Shaft Cross-Sectional Force Vector Canvas Renderer
+function drawZyCrossSectionCanvas() {
+    const canvas = document.getElementById('zyCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = 55;
+
+    // Background Axes
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+
+    // Z Axis (Horizontal)
+    ctx.beginPath();
+    ctx.moveTo(30, centerY);
+    ctx.lineTo(width - 30, centerY);
+    ctx.stroke();
+
+    // Y Axis (Vertical)
+    ctx.beginPath();
+    ctx.moveTo(centerX, 20);
+    ctx.lineTo(centerX, height - 20);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Axis Labels
+    ctx.fillStyle = '#64748b';
+    ctx.font = '600 11px Inter, sans-serif';
+    ctx.fillText('+Y (Up ↑)', centerX + 6, 25);
+    ctx.fillText('-Y (Down ↓)', centerX + 6, height - 12);
+    ctx.fillText('+Z (Right →)', width - 75, centerY - 8);
+    ctx.fillText('-Z (Left ←)', 15, centerY - 8);
+
+    // Shaft Circular Cross-Section
+    ctx.fillStyle = '#f1f5f9';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+
+    // Calculate component force sums
+    let fyUp = 0, fyDown = 0, fzRight = 0, fzLeft = 0;
+    vmLoadsList.forEach(l => {
+        const dir = l.dir || 'down_y';
+        const w = l.w_n || 0;
+        if (dir === 'up_y' || (dir === 'upward' && l.plane === 'xy')) fyUp += w;
+        if (dir === 'down_y' || (dir === 'downward' && l.plane === 'xy')) fyDown += w;
+        if (dir === 'right_z' || (dir === 'upward' && l.plane === 'xz')) fzRight += w;
+        if (dir === 'left_z' || (dir === 'downward' && l.plane === 'xz')) fzLeft += w;
+    });
+
+    const netFy = fyUp - fyDown;
+    const netFz = fzRight - fzLeft;
+
+    function drawArrow(fromX, fromY, toX, toY, color, label) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2.5;
+
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(toX, toY);
+        ctx.stroke();
+
+        const headlen = 8;
+        const angle = Math.atan2(toY - fromY, toX - fromX);
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+
+        if (label) {
+            ctx.font = '700 11px Inter, sans-serif';
+            ctx.fillText(label, toX + 5, toY < centerY ? toY - 5 : toY + 14);
+        }
+    }
+
+    if (fyUp > 0) drawArrow(centerX, centerY - radius, centerX, centerY - radius - 35, '#0284c7', `+Fy = ${fyUp} N`);
+    if (fyDown > 0) drawArrow(centerX, centerY + radius, centerX, centerY + radius + 35, '#dc2626', `-Fy = ${fyDown} N`);
+    if (fzRight > 0) drawArrow(centerX + radius, centerY, centerX + radius + 35, centerY, '#059669', `+Fz = ${fzRight} N`);
+    if (fzLeft > 0) drawArrow(centerX - radius, centerY, centerX - radius - 35, centerY, '#d97706', `-Fz = ${fzLeft} N`);
+
+    // Resultant force vector arrow
+    const Fres = Math.sqrt(netFy * netFy + netFz * netFz);
+    if (Fres > 0) {
+        const normZ = netFz / Fres;
+        const normY = netFy / Fres;
+        const arrowLen = 65;
+        const endX = centerX + normZ * arrowLen;
+        const endY = centerY - normY * arrowLen; // Canvas Y inverted
+
+        drawArrow(centerX, centerY, endX, endY, '#7c3aed', `F_res = ${Fres.toFixed(1)} N`);
+
+        const thetaDeg = (Math.atan2(netFy, netFz) * 180 / Math.PI).toFixed(1);
+        ctx.fillStyle = '#6b21a8';
+        ctx.font = '700 12px Inter, sans-serif';
+        ctx.fillText(`θ = ${thetaDeg}°`, centerX + 10, centerY - 10);
+    }
 }
 
 // Shaft Calculation Engine (Tab 1)
@@ -1129,12 +1234,27 @@ if (inputs.scPreset) {
 const btnVmModeRes = document.getElementById('btnVmModeRes');
 const btnVmModeXY = document.getElementById('btnVmModeXY');
 const btnVmModeXZ = document.getElementById('btnVmModeXZ');
+const btnVmModeZY = document.getElementById('btnVmModeZY');
+
+const boxSfdCanvas = document.getElementById('boxSfdCanvas');
+const boxBmdCanvas = document.getElementById('boxBmdCanvas');
+const boxZyCanvas = document.getElementById('boxZyCanvas');
 
 function setVmModeActive(activeBtn) {
-    [btnVmModeRes, btnVmModeXY, btnVmModeXZ].forEach(btn => {
+    [btnVmModeRes, btnVmModeXY, btnVmModeXZ, btnVmModeZY].forEach(btn => {
         if (btn) btn.classList.remove('active');
     });
     if (activeBtn) activeBtn.classList.add('active');
+
+    if (activeBtn === btnVmModeZY) {
+        if (boxSfdCanvas) boxSfdCanvas.style.display = 'none';
+        if (boxBmdCanvas) boxBmdCanvas.style.display = 'none';
+        if (boxZyCanvas) boxZyCanvas.style.display = 'block';
+    } else {
+        if (boxSfdCanvas) boxSfdCanvas.style.display = 'block';
+        if (boxBmdCanvas) boxBmdCanvas.style.display = 'block';
+        if (boxZyCanvas) boxZyCanvas.style.display = 'none';
+    }
 }
 
 if (btnVmModeRes) {
@@ -1155,6 +1275,13 @@ if (btnVmModeXZ) {
     btnVmModeXZ.addEventListener('click', () => {
         activeVmPlaneMode = 'xz';
         setVmModeActive(btnVmModeXZ);
+        calculate();
+    });
+}
+if (btnVmModeZY) {
+    btnVmModeZY.addEventListener('click', () => {
+        activeVmPlaneMode = 'zy';
+        setVmModeActive(btnVmModeZY);
         calculate();
     });
 }

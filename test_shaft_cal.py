@@ -157,5 +157,23 @@ class TestFRA232ComprehensiveSuite(unittest.TestCase):
         self.assertAlmostEqual(res_3d["res_xz"]["m_max_nm"], 10.0, places=2)
         self.assertAlmostEqual(res_3d["m_max_res_nm"], 12.5, places=2)
 
+    def test_18_four_directional_3d_loads(self):
+        """
+        [Test Case 18] การคำนวณแรง 4 ทิศทางอิสระ (+Y, -Y, +Z, -Z) ในระบบ 3D
+        - +Y = 500 N, -Y = 200 N -> Net Fy = 300 N
+        - +Z = 600 N, -Z = 200 N -> Net Fz = 400 N
+        - Resultant Force Fres = sqrt(300^2 + 400^2) = 500 N
+        """
+        loads_xy = [{"w_n": 500.0, "x_mm": 50.0}, {"w_n": -200.0, "x_mm": 50.0}]
+        loads_xz = [{"w_n": 600.0, "x_mm": 50.0}, {"w_n": -200.0, "x_mm": 50.0}]
+
+        shaft = AdvancedMechanicalShaft()
+        res_3d = shaft.calculate_3d_vm_diagram(length_mm=100.0, loads_xy=loads_xy, loads_xz=loads_xz, beam_type="ss")
+
+        # Peak My = (300*50)/2 = 7500 N-mm = 7.5 N-m
+        # Peak Mz = (400*50)/2 = 10000 N-mm = 10.0 N-m
+        # Resultant M = sqrt(7.5^2 + 10^2) = 12.5 N-m
+        self.assertAlmostEqual(res_3d["m_max_res_nm"], 12.5, places=2)
+
 if __name__ == "__main__":
     unittest.main()
