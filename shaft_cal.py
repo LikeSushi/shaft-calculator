@@ -147,6 +147,39 @@ class AdvancedMechanicalShaft:
             "m_points": m_points
         }
 
+    def calculate_3d_vm_diagram(self, length_mm, loads_xy, loads_xz, beam_type="ss", xa_mm=0.0, xb_mm=None):
+        """
+        คำนวณแผนภาพ V-M 3 มิติ (3D Dual-Plane System: XY Vertical & XZ Horizontal)
+        และคำนวณการรวมเวกเตอร์ลัพธ์ (Resultant Vectors: V_total = sqrt(Vy^2 + Vz^2), M_total = sqrt(My^2 + Mz^2))
+        """
+        res_xy = self.calculate_multi_load_vm_diagram(length_mm, loads_xy, beam_type=beam_type, xa_mm=xa_mm, xb_mm=xb_mm)
+        res_xz = self.calculate_multi_load_vm_diagram(length_mm, loads_xz, beam_type=beam_type, xa_mm=xa_mm, xb_mm=xb_mm)
+
+        ra_3d = math.sqrt(res_xy["ra_n"]**2 + res_xz["ra_n"]**2)
+        rb_3d = math.sqrt(res_xy["rb_n"]**2 + res_xz["rb_n"]**2)
+        ma_fixed_3d = math.sqrt(res_xy["ma_fixed_nmm"]**2 + res_xz["ma_fixed_nmm"]**2)
+
+        v_points_res = [ math.sqrt(vy**2 + vz**2) for vy, vz in zip(res_xy["v_points"], res_xz["v_points"]) ]
+        m_points_res = [ math.sqrt(my**2 + mz**2) for my, mz in zip(res_xy["m_points"], res_xz["m_points"]) ]
+
+        v_max_res = max(v_points_res, default=0.0)
+        m_max_nmm_res = max(m_points_res, default=0.0)
+        m_max_nm_res = m_max_nmm_res / 1000.0
+
+        return {
+            "res_xy": res_xy,
+            "res_xz": res_xz,
+            "ra_3d_n": ra_3d,
+            "rb_3d_n": rb_3d,
+            "ma_fixed_3d_nmm": ma_fixed_3d,
+            "v_max_res_n": v_max_res,
+            "m_max_res_nmm": m_max_nmm_res,
+            "m_max_res_nm": m_max_nm_res,
+            "x_points": res_xy["x_points"],
+            "v_points_res": v_points_res,
+            "m_points_res": m_points_res
+        }
+
     def asme_shaft_design(self, torque_nmm, bending_moment_nmm, axial_force_n=0.0, length_mm=100.0, 
                           is_compressive=True, end_condition="SS", is_rotating=True, load_type="steady", 
                           has_keyway=True, use_material_properties=False, cm_custom=None, ct_custom=None):

@@ -77,8 +77,9 @@ function lookupLewisY(teethCount) {
 }
 
 // State for Multi-Load V-M Diagram Engine
+let activeVmPlaneMode = 'res';
 let vmLoadsList = [
-    { w_n: 800, dir: 'downward', x_mm: 50 }
+    { w_n: 800, dir: 'downward', plane: 'xy', x_mm: 50 }
 ];
 
 // DOM Elements - Shaft Tab
@@ -299,8 +300,15 @@ function renderVmLoadsTable() {
     vmLoadsTbody.innerHTML = '';
     vmLoadsList.forEach((load, idx) => {
         const tr = document.createElement('tr');
+        const planeVal = load.plane || 'xy';
         tr.innerHTML = `
             <td>#${idx + 1}</td>
+            <td>
+                <select class="load-plane-select" data-idx="${idx}">
+                    <option value="xy" ${planeVal === 'xy' ? 'selected' : ''}>ระนาบตั้ง (XY - Fy)</option>
+                    <option value="xz" ${planeVal === 'xz' ? 'selected' : ''}>ระนาบนอน (XZ - Fz)</option>
+                </select>
+            </td>
             <td>
                 <select class="load-dir-select" data-idx="${idx}">
                     <option value="downward" ${load.dir === 'downward' ? 'selected' : ''}>ชี้ลง (↓)</option>
@@ -324,6 +332,14 @@ function renderVmLoadsTable() {
             </td>
         `;
         vmLoadsTbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.load-plane-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            vmLoadsList[idx].plane = e.target.value;
+            calculate();
+        });
     });
 
     document.querySelectorAll('.load-dir-select').forEach(select => {
@@ -362,7 +378,7 @@ function renderVmLoadsTable() {
 
 btnAddLoadRow.addEventListener('click', () => {
     const L_mm = parseFloat(inputs.shaftLength.value) || 100;
-    vmLoadsList.push({ w_n: 200, dir: 'downward', x_mm: Math.round(L_mm / 2) });
+    vmLoadsList.push({ w_n: 200, dir: 'downward', plane: 'xy', x_mm: Math.round(L_mm / 2) });
     renderVmLoadsTable();
     calculate();
 });
@@ -373,36 +389,17 @@ inputs.vmBeamType.addEventListener('change', (e) => {
     calculate();
 });
 
-// Advanced Multi-Load Vector V-M Diagram Engine
-function updateVmDiagram(L_mm) {
-    const beamType = inputs.vmBeamType.value;
-    const originChoice = inputs.vmOrigin ? inputs.vmOrigin.value : 'left';
-    const yDirChoice = inputs.vmYDir ? inputs.vmYDir.value : 'upward';
-    const momentSignChoice = inputs.vmMomentSign ? inputs.vmMomentSign.value : 'sagging';
-
-    let xa = 0.0;
-    let xb = L_mm;
-
-    if (beamType === 'overhanging') {
-        xa = parseFloat(inputs.vmXa.value) || 0.0;
-        xb = parseFloat(inputs.vmXb.value) || L_mm;
-    }
-
-    const signedLoads = vmLoadsList.map(l => ({
-        w_n: l.dir === 'upward' ? Math.abs(l.w_n) : -Math.abs(l.w_n),
-        x_mm: l.x_mm
-    }));
-
-    const total_w = signedLoads.reduce((sum, l) => sum + l.w_n, 0);
+function solveSinglePlaneVm(loads, L_mm, beamType, xa, xb, yDirChoice, momentSignChoice) {
+    const total_w = loads.reduce((sum, l) => sum + l.w_n, 0);
     let Ra = 0, Rb = 0, maFixed = 0;
 
     if (beamType === 'cantilever') {
         Ra = -total_w;
         Rb = 0;
-        maFixed = signedLoads.reduce((sum, l) => sum + (l.w_n * (l.x_mm - xa)), 0);
+        maFixed = loads.reduce((sum, l) => sum + (l.w_n * (l.x_mm - xa)), 0);
     } else {
         const span = Math.max(xb - xa, 1.0);
-        Rb = -signedLoads.reduce((sum, l) => sum + (l.w_n * (l.x_mm - xa)), 0) / span;
+        Rb = -loads.reduce((sum, l) => sum + (l.w_n * (l.x_mm - xa)), 0) / span;
         Ra = -total_w - Rb;
     }
 
@@ -417,14 +414,14 @@ function updateVmDiagram(L_mm) {
 
         const term_ra = x >= xa ? Ra : 0;
         const term_rb = x >= xb ? Rb : 0;
-        const term_w = signedLoads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n : 0), 0);
+        const term_w = loads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n : 0), 0);
         let v_x = term_ra + term_rb + term_w;
         if (yDirChoice === 'downward') v_x = -v_x;
 
         const m_fixed_term = x >= xa ? maFixed : 0;
         const m_ra = Ra * Math.max(x - xa, 0);
         const m_rb = Rb * Math.max(x - xb, 0);
-        const m_w = signedLoads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n * (x - l.x_mm) : 0), 0);
+        const m_w = loads.reduce((sum, l) => sum + (l.x_mm <= x ? l.w_n * (x - l.x_mm) : 0), 0);
         let m_x = m_fixed_term + m_ra + m_rb + m_w;
         if (momentSignChoice === 'hogging') m_x = -m_x;
 
@@ -432,26 +429,80 @@ function updateVmDiagram(L_mm) {
         mPoints.push(m_x);
     }
 
-    const Vmax = Math.max(...vPoints.map(Math.abs), 0);
-    const Mmax_nmm = Math.max(...mPoints.map(Math.abs), 0);
-    const Mmax_nm = Mmax_nmm / 1000.0;
+    return { Ra, Rb, maFixed, xPoints, vPoints, mPoints };
+}
 
-    lastCalculatedMmaxNm = Mmax_nm;
+// Advanced Multi-Load 3D Dual-Plane Vector V-M Diagram Engine
+function updateVmDiagram(L_mm) {
+    const beamType = inputs.vmBeamType.value;
+    const yDirChoice = inputs.vmYDir ? inputs.vmYDir.value : 'upward';
+    const momentSignChoice = inputs.vmMomentSign ? inputs.vmMomentSign.value : 'sagging';
 
-    const raDisp = yDirChoice === 'downward' ? -Ra : Ra;
-    const rbDisp = yDirChoice === 'downward' ? -Rb : Rb;
+    let xa = 0.0;
+    let xb = L_mm;
 
-    outputs.resVmRa.innerText = `${raDisp >= 0 ? '+' : ''}${formatDec(raDisp)} N (${Ra >= 0 ? '↑' : '↓'})`;
+    if (beamType === 'overhanging') {
+        xa = parseFloat(inputs.vmXa.value) || 0.0;
+        xb = parseFloat(inputs.vmXb.value) || L_mm;
+    }
+
+    const loadsXY = vmLoadsList.filter(l => (l.plane || 'xy') === 'xy').map(l => ({
+        w_n: l.dir === 'upward' ? Math.abs(l.w_n) : -Math.abs(l.w_n),
+        x_mm: l.x_mm
+    }));
+
+    const loadsXZ = vmLoadsList.filter(l => l.plane === 'xz').map(l => ({
+        w_n: l.dir === 'upward' ? Math.abs(l.w_n) : -Math.abs(l.w_n),
+        x_mm: l.x_mm
+    }));
+
+    const resXY = solveSinglePlaneVm(loadsXY, L_mm, beamType, xa, xb, yDirChoice, momentSignChoice);
+    const resXZ = solveSinglePlaneVm(loadsXZ, L_mm, beamType, xa, xb, yDirChoice, momentSignChoice);
+
+    const Ra_3d = Math.sqrt(Math.pow(resXY.Ra, 2) + Math.pow(resXZ.Ra, 2));
+    const Rb_3d = Math.sqrt(Math.pow(resXY.Rb, 2) + Math.pow(resXZ.Rb, 2));
+    const maFixed_3d = Math.sqrt(Math.pow(resXY.maFixed, 2) + Math.pow(resXZ.maFixed, 2));
+
+    const vPointsRes = resXY.vPoints.map((v_y, i) => Math.sqrt(Math.pow(v_y, 2) + Math.pow(resXZ.vPoints[i], 2)));
+    const mPointsRes = resXY.mPoints.map((m_y, i) => Math.sqrt(Math.pow(m_y, 2) + Math.pow(resXZ.mPoints[i], 2)));
+
+    const VmaxRes = Math.max(...vPointsRes, 0);
+    const MmaxResNmm = Math.max(...mPointsRes, 0);
+    const MmaxResNm = MmaxResNmm / 1000.0;
+
+    lastCalculatedMmaxNm = MmaxResNm;
+
+    let activeVPoints = vPointsRes;
+    let activeMPoints = mPointsRes;
+    let activeVmax = VmaxRes;
+    let activeMmaxNmm = MmaxResNmm;
+    let activeMmaxNm = MmaxResNm;
+
+    if (activeVmPlaneMode === 'xy') {
+        activeVPoints = resXY.vPoints;
+        activeMPoints = resXY.mPoints;
+        activeVmax = Math.max(...resXY.vPoints.map(Math.abs), 0);
+        activeMmaxNmm = Math.max(...resXY.mPoints.map(Math.abs), 0);
+        activeMmaxNm = activeMmaxNmm / 1000.0;
+    } else if (activeVmPlaneMode === 'xz') {
+        activeVPoints = resXZ.vPoints;
+        activeMPoints = resXZ.mPoints;
+        activeVmax = Math.max(...resXZ.vPoints.map(Math.abs), 0);
+        activeMmaxNmm = Math.max(...resXZ.mPoints.map(Math.abs), 0);
+        activeMmaxNm = activeMmaxNmm / 1000.0;
+    }
+
+    outputs.resVmRa.innerText = `${formatDec(Ra_3d)} N (XY:${formatDec(Math.abs(resXY.Ra))}, XZ:${formatDec(Math.abs(resXZ.Ra))})`;
     outputs.resVmRb.innerText = beamType === 'cantilever' 
-        ? `M_fixed = ${formatDec(maFixed/1000)} N-m` 
-        : `${rbDisp >= 0 ? '+' : ''}${formatDec(rbDisp)} N (${Rb >= 0 ? '↑' : '↓'})`;
-    outputs.resVmVmax.innerText = `${formatDec(Vmax)} N`;
-    outputs.resVmMmaxNm.innerText = `${formatDec(Mmax_nm)} N-m`;
-    outputs.resVmMmaxNmm.innerText = `${formatDecComma(Mmax_nmm)} N-mm`;
-    btnSyncMoment.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (${formatDec(Mmax_nm)} N-m) เข้าไปตั้งค่า Bending Moment หลัก (Optional Sync)`;
+        ? `M_fixed = ${formatDec(maFixed_3d/1000)} N-m` 
+        : `${formatDec(Rb_3d)} N (XY:${formatDec(Math.abs(resXY.Rb))}, XZ:${formatDec(Math.abs(resXZ.Rb))})`;
+    outputs.resVmVmax.innerText = `${formatDec(activeVmax)} N`;
+    outputs.resVmMmaxNm.innerText = `${formatDec(activeMmaxNm)} N-m`;
+    outputs.resVmMmaxNmm.innerText = `${formatDecComma(activeMmaxNmm)} N-mm`;
+    btnSyncMoment.innerHTML = `<i class="fa-solid fa-arrows-rotate"></i> นำค่า M<sub>max</sub> (${formatDec(MmaxResNm)} N-m 3D Vector) เข้าไปตั้งค่า Bending Moment หลัก (Optional Sync)`;
 
-    drawMultiLoadSFD(L_mm, xPoints, vPoints, Vmax, beamType, xa, xb);
-    drawMultiLoadBMD(L_mm, xPoints, mPoints, Mmax_nm, Mmax_nmm, beamType);
+    drawMultiLoadSFD(L_mm, resXY.xPoints, activeVPoints, activeVmax || 1, beamType, xa, xb);
+    drawMultiLoadBMD(L_mm, resXY.xPoints, activeMPoints, activeMmaxNm, activeMmaxNmm || 1, beamType);
 }
 
 // Draw SFD & BMD
@@ -1071,6 +1122,39 @@ if (inputs.scPreset) {
             inputs.ktValue.value = SC_PRESETS[val].kt;
             inputs.ktsValue.value = SC_PRESETS[val].kts;
         }
+        calculate();
+    });
+}
+
+const btnVmModeRes = document.getElementById('btnVmModeRes');
+const btnVmModeXY = document.getElementById('btnVmModeXY');
+const btnVmModeXZ = document.getElementById('btnVmModeXZ');
+
+function setVmModeActive(activeBtn) {
+    [btnVmModeRes, btnVmModeXY, btnVmModeXZ].forEach(btn => {
+        if (btn) btn.classList.remove('active');
+    });
+    if (activeBtn) activeBtn.classList.add('active');
+}
+
+if (btnVmModeRes) {
+    btnVmModeRes.addEventListener('click', () => {
+        activeVmPlaneMode = 'res';
+        setVmModeActive(btnVmModeRes);
+        calculate();
+    });
+}
+if (btnVmModeXY) {
+    btnVmModeXY.addEventListener('click', () => {
+        activeVmPlaneMode = 'xy';
+        setVmModeActive(btnVmModeXY);
+        calculate();
+    });
+}
+if (btnVmModeXZ) {
+    btnVmModeXZ.addEventListener('click', () => {
+        activeVmPlaneMode = 'xz';
+        setVmModeActive(btnVmModeXZ);
         calculate();
     });
 }

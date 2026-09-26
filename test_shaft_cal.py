@@ -137,5 +137,25 @@ class TestFRA232ComprehensiveSuite(unittest.TestCase):
         actual_ratio = res_steel["nc_rpm"] / res_pom["nc_rpm"]
         self.assertAlmostEqual(actual_ratio, expected_ratio, places=2)
 
+    def test_17_dual_plane_3d_vm_diagram(self):
+        """
+        [Test Case 17] การคำนวณแผนภาพ V-M 3 มิติ (3D Dual-Plane Vector Superposition)
+        - แรงในระนาบ XY (แนวตั้ง): 300 N ที่ x = 50 mm
+        - แรงในระนาบ XZ (แนวนอน): 400 N ที่ x = 50 mm
+        - โมเมนต์ดัดลัพธ์ M_total ต้องเท่ากับ sqrt(M_y^2 + M_z^2)
+        """
+        shaft = AdvancedMechanicalShaft()
+        loads_xy = [{"w_n": -300.0, "x_mm": 50.0}]
+        loads_xz = [{"w_n": -400.0, "x_mm": 50.0}]
+
+        res_3d = shaft.calculate_3d_vm_diagram(length_mm=100.0, loads_xy=loads_xy, loads_xz=loads_xz, beam_type="ss")
+
+        # Peak My = (300*50)/2 = 7500 N-mm = 7.5 N-m
+        # Peak Mz = (400*50)/2 = 10000 N-mm = 10.0 N-m
+        # M_total = sqrt(7.5^2 + 10^2) = 12.5 N-m
+        self.assertAlmostEqual(res_3d["res_xy"]["m_max_nm"], 7.5, places=2)
+        self.assertAlmostEqual(res_3d["res_xz"]["m_max_nm"], 10.0, places=2)
+        self.assertAlmostEqual(res_3d["m_max_res_nm"], 12.5, places=2)
+
 if __name__ == "__main__":
     unittest.main()
