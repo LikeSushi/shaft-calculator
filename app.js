@@ -902,9 +902,11 @@ function calculate() {
     outputs.resTwistPerM.innerText = `${formatDec(theta_per_m)} deg/m`;
 
     if (outputs.resDeflection) {
-        const y_xy_val = Math.abs(y_total_y);
-        const y_zy_val = Math.abs(y_total_z);
-        outputs.resDeflection.innerHTML = `${formatDec(y_deflect)} mm <div style="font-size: 11px; color: #475569; font-weight: normal; margin-top: 2px;">(Y<sub>xy</sub> = ${formatDec(y_xy_val)} mm, Y<sub>zy</sub> = ${formatDec(y_zy_val)} mm)</div>`;
+        const y_xy_str = `${y_total_y >= 0 ? '+' : ''}${formatDec(y_total_y)}`;
+        const y_zy_str = `${y_total_z >= 0 ? '+' : ''}${formatDec(y_total_z)}`;
+        const dir_xy_tag = y_total_y >= 0 ? '↑' : '↓';
+        const dir_zy_tag = y_total_z >= 0 ? '→' : '←';
+        outputs.resDeflection.innerHTML = `${formatDec(y_deflect)} mm <div style="font-size: 11px; color: #475569; font-weight: normal; margin-top: 2px;">(Y<sub>xy</sub> = ${y_xy_str} mm ${dir_xy_tag}, Y<sub>zy</sub> = ${y_zy_str} mm ${dir_zy_tag})</div>`;
         const maxAllowableY = 0.001 * L_mm;
         if (y_deflect <= maxAllowableY) {
             outputs.resDeflectionCheck.innerHTML = `<span class="status-badge pass"><i class="fa-solid fa-check"></i> Safe (&le; ${formatDec(maxAllowableY)} mm)</span>`;
