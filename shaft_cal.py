@@ -289,6 +289,55 @@ class AdvancedMechanicalShaft:
             "safe_operating_range_rpm": (0.75 * nc_rpm, 1.25 * nc_rpm)
         }
 
+    def calculate_3d_critical_speed(self, loads_xy, loads_xz, length_mm, xa_mm=0.0, xb_mm=None, d_mm=None, e_mpa=None):
+        """
+        คำนวณความเร็วรอบวิกฤต 3 มิติ (3D Dual-Plane Vector Critical Speed)
+        โดยคำนวณระยะแอ่นตัวแบบเวกเตอร์ 3 มิติ Y_total = sqrt(Y_xy^2 + Y_xz^2)
+        """
+        d = float(d_mm) if d_mm is not None else self.d
+        if d is None or d <= 0:
+            raise ValueError("ต้องระบุขนาดเส้นผ่านศูนย์กลางเพลา (d_mm)")
+
+        e_val = float(e_mpa) if e_mpa is not None else self.e
+        i_inertia = (math.pi * (d**4)) / 64.0
+        L = float(length_mm)
+        xa = float(xa_mm)
+        xb = float(xb_mm) if xb_mm is not None else L
+        span = max(xb - xa, 1.0)
+
+        y_xy_total = 0.0
+        for load in loads_xy:
+            w = float(load.get("w_n", 0.0))
+            x = float(load.get("x_mm", 0.0))
+            a = max(x - xa, 0.0)
+            b = max(xb - x, 0.0)
+            y_i = (w * (a**2) * (b**2)) / (3.0 * e_val * i_inertia * span)
+            y_xy_total += y_i
+
+        y_xz_total = 0.0
+        for load in loads_xz:
+            w = float(load.get("w_n", 0.0))
+            x = float(load.get("x_mm", 0.0))
+            a = max(x - xa, 0.0)
+            b = max(xb - x, 0.0)
+            y_i = (w * (a**2) * (b**2)) / (3.0 * e_val * i_inertia * span)
+            y_xz_total += y_i
+
+        y_total_3d = math.sqrt(y_xy_total**2 + y_xz_total**2)
+        if y_total_3d <= 0:
+            raise ValueError("ค่าผลรวมความโก่งตัวไม่ถูกต้อง")
+
+        nc_rpm = 945.0 / math.sqrt(y_total_3d)
+
+        return {
+            "i_inertia_mm4": i_inertia,
+            "y_xy_total_mm": y_xy_total,
+            "y_xz_total_mm": y_xz_total,
+            "y_total_3d_mm": y_total_3d,
+            "nc_rpm": nc_rpm,
+            "safe_operating_range_rpm": (0.75 * nc_rpm, 1.25 * nc_rpm)
+        }
+
     def fatigue_analysis(self, m_a_nm, t_m_nm, kt=1.0, kts=1.0, d_mm=None):
         d = float(d_mm) if d_mm is not None else self.d
         if d is None or d <= 0:

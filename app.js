@@ -779,9 +779,52 @@ function calculate() {
     const theta_per_m = theta_deg * (1000.0 / L_mm);
 
     const I = (Math.PI * Math.pow(d_iso, 4)) / 64.0;
-    const W_dummy = 10.0;
-    const y_deflect = (W_dummy * Math.pow(L_mm, 3)) / (48.0 * E * I);
-    const nc_rpm = y_deflect > 0 ? 945.0 * Math.sqrt(1.0 / y_deflect) : 99999;
+
+    // 3D Vector Deflection & Critical Speed Calculation
+    const beamType = inputs.vmBeamType ? inputs.vmBeamType.value : 'ss';
+    let xa = 0.0;
+    let xb = L_mm;
+    if (beamType === 'overhanging') {
+        xa = parseFloat(inputs.vmXa.value) || 0.0;
+        xb = parseFloat(inputs.vmXb.value) || L_mm;
+    }
+
+    const span = Math.max(xb - xa, 1.0);
+    let y_total_y = 0.0;
+    let y_total_z = 0.0;
+
+    vmLoadsList.forEach(l => {
+        const w = Math.abs(l.w_n || 0);
+        if (w > 0) {
+            const x_pos = l.x_mm || 0;
+            const a = Math.max(x_pos - xa, 0.0);
+            const b = Math.max(xb - x_pos, 0.0);
+            const dir = l.dir || 'down_y';
+            const plane = l.plane || ((dir === 'right_z' || dir === 'left_z') ? 'xz' : 'xy');
+
+            const signedW = (dir === 'up_y' || dir === 'right_z' || dir === 'upward') ? w : -w;
+            const deflect_i = (signedW * Math.pow(a, 2) * Math.pow(b, 2)) / (3.0 * E * I * span);
+
+            if (plane === 'xz') {
+                y_total_z += deflect_i;
+            } else {
+                y_total_y += deflect_i;
+            }
+        }
+    });
+
+    const Y_total_3d = Math.sqrt(Math.pow(y_total_y, 2) + Math.pow(y_total_z, 2));
+
+    let y_deflect = Y_total_3d;
+    let nc_rpm = 99999.0;
+
+    if (y_deflect > 0) {
+        nc_rpm = 945.0 / Math.sqrt(y_deflect);
+    } else {
+        const W_dummy = 10.0;
+        y_deflect = (W_dummy * Math.pow(L_mm, 3)) / (48.0 * E * I);
+        nc_rpm = y_deflect > 0 ? 945.0 * Math.sqrt(1.0 / y_deflect) : 99999;
+    }
 
     const se_prime = Sut <= 1400 ? 0.5 * Sut : 700.0;
     const ka = 4.51 * Math.pow(Sut, -0.265);

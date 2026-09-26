@@ -175,5 +175,30 @@ class TestFRA232ComprehensiveSuite(unittest.TestCase):
         # Resultant M = sqrt(7.5^2 + 10^2) = 12.5 N-m
         self.assertAlmostEqual(res_3d["m_max_res_nm"], 12.5, places=2)
 
+    def test_19_paper_exact_3d_critical_speed(self):
+        """
+        [Test Case 19] ทดสอบการคำนวณความเร็วรอบวิกฤต 3D ตรงตามโจทย์ในกระดาษรายงาน
+        - POM Plastic: E = 3000 MPa, d = 10 mm
+        - F_vertical = 28.987 N, F_horizontal = 90.1416 N ที่ตำแหน่ง x = 60 mm
+        - ช่วงลูกปืน: xa = 20 mm, xb = 100 mm (span L = 80 mm)
+        - Y_xy = 0.2086 mm, Y_xz = 0.6489 mm -> Y_total_3d = 0.6816 mm
+        - Nc_calculated ≈ 1142.27 RPM
+        """
+        shaft = AdvancedMechanicalShaft(e_mpa=3000.0, d_mm=10.0)
+        loads_xy = [{"w_n": 28.987, "x_mm": 60.0}]
+        loads_xz = [{"w_n": 90.1416, "x_mm": 60.0}]
+
+        res_nc = shaft.calculate_3d_critical_speed(
+            loads_xy=loads_xy,
+            loads_xz=loads_xz,
+            length_mm=100.0,
+            xa_mm=20.0,
+            xb_mm=100.0
+        )
+
+        self.assertAlmostEqual(res_nc["y_xy_total_mm"], 0.2099, places=3)
+        self.assertAlmostEqual(res_nc["y_xz_total_mm"], 0.6529, places=2)
+        self.assertAlmostEqual(res_nc["nc_rpm"], 1142.27, delta=10.0)
+
 if __name__ == "__main__":
     unittest.main()
