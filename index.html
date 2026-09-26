@@ -425,8 +425,8 @@
                         <div class="coord-banner mb-3">
                             <span class="coord-tag"><i class="fa-solid fa-compass"></i> 3D Dual-Plane Vector System:</span>
                             <span>\( X \to \) Shaft Axis (mm)</span> • 
-                            <span class="up-val"><i class="fa-solid fa-arrows-up-down"></i> XY Vertical Plane (F<sub>y</sub>)</span> • 
-                            <span class="down-val"><i class="fa-solid fa-arrows-left-right"></i> XZ Horizontal Plane (F<sub>z</sub>)</span>
+                            <span class="up-val"><i class="fa-solid fa-arrows-up-down"></i> ZY Vertical Plane (F<sub>z</sub> - แนวตั้ง)</span> • 
+                            <span class="down-val"><i class="fa-solid fa-arrows-left-right"></i> XY Horizontal Plane (F<sub>y</sub> - แนวนอน)</span>
                         </div>
 
                         <!-- DYNAMIC COORDINATE SYSTEM CONFIGURATION -->
@@ -530,9 +530,9 @@
 
                         <!-- 3D DUAL-PLANE & X-Z CROSS-SECTION DIAGRAM MODE SELECTOR -->
                         <div class="mb-3" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-                            <button class="btn-scientific active" id="btnVmModeRes" style="font-size: 12px;"><i class="fa-solid fa-cube"></i> 3D Resultant Vector ($\sqrt{XY^2 + ZY^2}$)</button>
-                            <button class="btn-scientific" id="btnVmModeXY" style="font-size: 12px;"><i class="fa-solid fa-arrows-up-down"></i> ระนาบ X-Y (Longitudinal 1)</button>
-                            <button class="btn-scientific" id="btnVmModeXZ" style="font-size: 12px;"><i class="fa-solid fa-arrows-left-right"></i> ระนาบ Z-Y (Longitudinal 2)</button>
+                            <button class="btn-scientific active" id="btnVmModeRes" style="font-size: 12px;"><i class="fa-solid fa-cube"></i> 3D Resultant Vector ($\sqrt{ZY^2 + XY^2}$)</button>
+                            <button class="btn-scientific" id="btnVmModeXZ" style="font-size: 12px;"><i class="fa-solid fa-arrows-up-down"></i> ระนาบ Z-Y (แนวตั้ง - Vertical Plane)</button>
+                            <button class="btn-scientific" id="btnVmModeXY" style="font-size: 12px;"><i class="fa-solid fa-arrows-left-right"></i> ระนาบ X-Y (แนวนอน - Horizontal Plane)</button>
                             <button class="btn-scientific" id="btnVmModeZY" style="font-size: 12px;"><i class="fa-solid fa-circle-dot"></i> ระนาบตัดขวาง X-Z (Cross-Section View)</button>
                         </div>
 

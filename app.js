@@ -316,8 +316,8 @@ function renderVmLoadsTable() {
             <td>#${idx + 1}</td>
             <td>
                 <select class="load-plane-select" data-idx="${idx}">
-                    <option value="xy" ${planeVal === 'xy' ? 'selected' : ''}>ระนาบตั้ง (XY - Fy)</option>
-                    <option value="xz" ${planeVal === 'xz' ? 'selected' : ''}>ระนาบนอน (XZ - Fz)</option>
+                    <option value="xz" ${planeVal === 'xz' ? 'selected' : ''}>ระนาบ Z-Y (แนวตั้ง - Fz)</option>
+                    <option value="xy" ${planeVal === 'xy' ? 'selected' : ''}>ระนาบ X-Y (แนวนอน - Fy)</option>
                 </select>
             </td>
             <td>
@@ -663,13 +663,13 @@ function drawZyCrossSectionCanvas() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Axis Labels for Cross Section (Plane X-Z view of Y and Z forces)
+    // Axis Labels for Cross Section View (Vertical Plane Z-Y vs Horizontal Plane X-Y)
     ctx.fillStyle = '#64748b';
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.fillText('+Fy (ระนาบ X-Y ↑)', centerX + 6, 25);
-    ctx.fillText('-Fy (ระนาบ X-Y ↓)', centerX + 6, height - 12);
-    ctx.fillText('+Fz (ระนาบ Z-Y →)', width - 105, centerY - 8);
-    ctx.fillText('-Fz (ระนาบ Z-Y ←)', 10, centerY - 8);
+    ctx.fillText('+Fz (ระนาบ Z-Y ↑)', centerX + 6, 25);
+    ctx.fillText('-Fz (ระนาบ Z-Y ↓)', centerX + 6, height - 12);
+    ctx.fillText('+Fy (ระนาบ X-Y →)', width - 105, centerY - 8);
+    ctx.fillText('-Fy (ระนาบ X-Y ←)', 10, centerY - 8);
 
     // Shaft Circular Cross-Section
     ctx.fillStyle = '#f1f5f9';
@@ -902,11 +902,11 @@ function calculate() {
     outputs.resTwistPerM.innerText = `${formatDec(theta_per_m)} deg/m`;
 
     if (outputs.resDeflection) {
-        const y_xy_str = `${y_total_y >= 0 ? '+' : ''}${formatDec(y_total_y)}`;
         const y_zy_str = `${y_total_z >= 0 ? '+' : ''}${formatDec(y_total_z)}`;
-        const dir_xy_tag = y_total_y >= 0 ? '↑' : '↓';
-        const dir_zy_tag = y_total_z >= 0 ? '→' : '←';
-        outputs.resDeflection.innerHTML = `${formatDec(y_deflect)} mm <div style="font-size: 11px; color: #475569; font-weight: normal; margin-top: 2px;">(Y<sub>xy</sub> = ${y_xy_str} mm ${dir_xy_tag}, Y<sub>zy</sub> = ${y_zy_str} mm ${dir_zy_tag})</div>`;
+        const y_xy_str = `${y_total_y >= 0 ? '+' : ''}${formatDec(y_total_y)}`;
+        const dir_zy_tag = y_total_z >= 0 ? '↑' : '↓';
+        const dir_xy_tag = y_total_y >= 0 ? '→' : '←';
+        outputs.resDeflection.innerHTML = `${formatDec(y_deflect)} mm <div style="font-size: 11px; color: #475569; font-weight: normal; margin-top: 2px;">(Y<sub>zy</sub> = ${y_zy_str} mm ${dir_zy_tag}, Y<sub>xy</sub> = ${y_xy_str} mm ${dir_xy_tag})</div>`;
         const maxAllowableY = 0.001 * L_mm;
         if (y_deflect <= maxAllowableY) {
             outputs.resDeflectionCheck.innerHTML = `<span class="status-badge pass"><i class="fa-solid fa-check"></i> Safe (&le; ${formatDec(maxAllowableY)} mm)</span>`;
