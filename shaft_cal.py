@@ -280,7 +280,8 @@ class AdvancedMechanicalShaft:
         if sum_wy2 <= 0:
             raise ValueError("ค่าผลรวมความโก่งตัวไม่ถูกต้อง")
 
-        nc_rpm = 945.0 * math.sqrt(sum_wy / sum_wy2)
+        nc_factor = (30.0 / math.pi) * math.sqrt(9810.0) # 945.7335
+        nc_rpm = nc_factor * math.sqrt(sum_wy / sum_wy2)
 
         return {
             "i_inertia_mm4": i_inertia,
@@ -327,7 +328,8 @@ class AdvancedMechanicalShaft:
         if y_total_3d <= 0:
             raise ValueError("ค่าผลรวมความโก่งตัวไม่ถูกต้อง")
 
-        nc_rpm = 945.0 / math.sqrt(y_total_3d)
+        nc_factor = (30.0 / math.pi) * math.sqrt(9810.0)
+        nc_rpm = nc_factor / math.sqrt(y_total_3d)
 
         return {
             "i_inertia_mm4": i_inertia,

@@ -253,6 +253,54 @@
                         <span id="verdictBadge" class="verdict-tag verdict-pass"><i class="fa-solid fa-check"></i> DESIGN SAFE</span>
                     </div>
 
+                    <!-- Custom/Selected Shaft Diameter Override Selector -->
+                    <div class="field-group mb-3" style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 14px; border-radius: 8px;">
+                        <label for="overrideShaftDia" style="font-weight: 700; color: #1e40af; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                            <i class="fa-solid fa-ruler-combined"></i> เลือกขนาดเพลาที่ต้องการใช้งานคำนวณจริง (Selected Shaft Diameter d)
+                        </label>
+                        <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
+                            <select id="overrideShaftDia" style="font-weight: 600; color: #1e3a8a; border: 1.5px solid #93c5fd; padding: 6px 10px; border-radius: 6px; background: #ffffff; flex: 1; min-width: 200px;">
+                                <option value="auto" selected>✨ อัตโนมัติ (ตามขนาดแนะนำ ISO Standard)</option>
+                                <option value="6">6 mm</option>
+                                <option value="7">7 mm</option>
+                                <option value="8">8 mm</option>
+                                <option value="9">9 mm</option>
+                                <option value="10">10 mm</option>
+                                <option value="12">12 mm</option>
+                                <option value="14">14 mm</option>
+                                <option value="15">15 mm</option>
+                                <option value="18">18 mm</option>
+                                <option value="20">20 mm</option>
+                                <option value="25">25 mm</option>
+                                <option value="30">30 mm</option>
+                                <option value="35">35 mm</option>
+                                <option value="40">40 mm</option>
+                                <option value="45">45 mm</option>
+                                <option value="50">50 mm</option>
+                                <option value="55">55 mm</option>
+                                <option value="60">60 mm</option>
+                                <option value="65">65 mm</option>
+                                <option value="70">70 mm</option>
+                                <option value="75">75 mm</option>
+                                <option value="80">80 mm</option>
+                                <option value="85">85 mm</option>
+                                <option value="90">90 mm</option>
+                                <option value="95">95 mm</option>
+                                <option value="100">100 mm</option>
+                                <option value="custom">กำหนดขนาดเอง (Custom mm)...</option>
+                            </select>
+                            <div id="customShaftDiaWrapper" style="display: none; width: 130px;">
+                                <div class="unit-wrapper">
+                                    <input type="number" id="customShaftDia" value="10" step="any" placeholder="ขนาด d">
+                                    <span class="unit-tag">mm</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #2563eb; margin-top: 5px;">
+                            <i class="fa-solid fa-circle-info"></i> เลือกระบุขนาดเพลาเพื่อคำนวณค่าองศาบิด (&theta;), ความโก่งตัว ($Y_{total}$), ความเร็วรอบวิกฤต ($N_c$) และ FOS ย้อนหลังได้ทันที
+                        </div>
+                    </div>
+
                     <table class="report-table">
                         <thead>
                             <tr>
@@ -268,6 +316,12 @@
                                 <td>ISO/R 775-1969 Table 9.1</td>
                                 <td><strong id="resIsoDia" class="primary-val">14 mm</strong></td>
                                 <td><span class="status-badge pass">ISO Standard</span></td>
+                            </tr>
+                            <tr style="background-color: #f0fdf4;">
+                                <td><strong>Applied Active Diameter (d<sub>used</sub>)</strong></td>
+                                <td>User Selected / Evaluation Size</td>
+                                <td><strong id="resSelectedDia" style="color: #047857; font-size: 1.1em;">14 mm</strong></td>
+                                <td id="resSelectedStatus"><span class="status-badge pass"><i class="fa-solid fa-check"></i> Active Size</span></td>
                             </tr>
                             <tr>
                                 <td>ASME Calculated Diameter</td>
@@ -286,6 +340,12 @@
                                 <td><span id="eqTwist">\( \theta = \frac{584 \cdot T \cdot L}{G \cdot d^4} \)</span></td>
                                 <td id="resTwistDeg">0.459&deg;</td>
                                 <td id="resTwistPerM">4.59 deg/m</td>
+                            </tr>
+                            <tr>
+                                <td>Max Shaft Deflection (Y<sub>total</sub>)</td>
+                                <td><span id="eqDeflection">\( Y_{total} = \sqrt{Y_{xy}^2 + Y_{zy}^2} \)</span></td>
+                                <td id="resDeflection">0.0000 mm</td>
+                                <td id="resDeflectionCheck">Y &le; 0.001 L (Safe)</td>
                             </tr>
                             <tr>
                                 <td>Critical Speed (n<sub>c</sub>)</td>

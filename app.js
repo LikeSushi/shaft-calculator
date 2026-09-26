@@ -104,6 +104,11 @@ const inputs = {
     cmValue: document.getElementById('cmValue'),
     ctValue: document.getElementById('ctValue'),
 
+    // Diameter Override & Selection Controls
+    overrideShaftDia: document.getElementById('overrideShaftDia'),
+    customShaftDia: document.getElementById('customShaftDia'),
+    customShaftDiaWrapper: document.getElementById('customShaftDiaWrapper'),
+
     // V-M Diagram & Coordinate System Controls
     vmBeamType: document.getElementById('vmBeamType'),
     vmXa: document.getElementById('vmXa'),
@@ -116,11 +121,15 @@ const inputs = {
 
 const outputs = {
     resIsoDia: document.getElementById('resIsoDia'),
+    resSelectedDia: document.getElementById('resSelectedDia'),
+    resSelectedStatus: document.getElementById('resSelectedStatus'),
     resCalcDia: document.getElementById('resCalcDia'),
     resTorque: document.getElementById('resTorque'),
     resTorqueNmm: document.getElementById('resTorqueNmm'),
     resTwistDeg: document.getElementById('resTwistDeg'),
     resTwistPerM: document.getElementById('resTwistPerM'),
+    resDeflection: document.getElementById('resDeflection'),
+    resDeflectionCheck: document.getElementById('resDeflectionCheck'),
     resCriticalSpeed: document.getElementById('resCriticalSpeed'),
     resOperatingCheck: document.getElementById('resOperatingCheck'),
     resTauD: document.getElementById('resTauD'),
@@ -385,6 +394,20 @@ btnAddLoadRow.addEventListener('click', () => {
     calculate();
 });
 
+inputs.overrideShaftDia.addEventListener('change', (e) => {
+    const isCustom = e.target.value === 'custom';
+    if (inputs.customShaftDiaWrapper) {
+        inputs.customShaftDiaWrapper.style.display = isCustom ? 'block' : 'none';
+    }
+    calculate();
+});
+
+if (inputs.customShaftDia) {
+    inputs.customShaftDia.addEventListener('input', () => {
+        calculate();
+    });
+}
+
 inputs.vmBeamType.addEventListener('change', (e) => {
     const val = e.target.value;
     overhangingPosRow.style.display = val === 'overhanging' ? 'grid' : 'none';
@@ -640,13 +663,13 @@ function drawZyCrossSectionCanvas() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Axis Labels for X-Z Cross Section
+    // Axis Labels for Cross Section (Plane X-Z view of Y and Z forces)
     ctx.fillStyle = '#64748b';
     ctx.font = '600 11px Inter, sans-serif';
-    ctx.fillText('+Z (ระนาบ ZY ↑)', centerX + 6, 25);
-    ctx.fillText('-Z (ระนาบ ZY ↓)', centerX + 6, height - 12);
-    ctx.fillText('+X (ระนาบ XY →)', width - 95, centerY - 8);
-    ctx.fillText('-X (ระนาบ XY ←)', 10, centerY - 8);
+    ctx.fillText('+Fy (ระนาบ X-Y ↑)', centerX + 6, 25);
+    ctx.fillText('-Fy (ระนาบ X-Y ↓)', centerX + 6, height - 12);
+    ctx.fillText('+Fz (ระนาบ Z-Y →)', width - 105, centerY - 8);
+    ctx.fillText('-Fz (ระนาบ Z-Y ←)', 10, centerY - 8);
 
     // Shaft Circular Cross-Section
     ctx.fillStyle = '#f1f5f9';
@@ -774,11 +797,20 @@ function calculate() {
     const d_calc = d_curr;
     const d_iso = getIsoStandardDiameter(d_calc);
 
+    // Dynamic Shaft Diameter Selection (User Override or Auto Recommended ISO)
+    let d_used = d_iso;
+    const overrideVal = inputs.overrideShaftDia ? inputs.overrideShaftDia.value : 'auto';
+    if (overrideVal === 'custom') {
+        d_used = parseFloat(inputs.customShaftDia ? inputs.customShaftDia.value : 0) || d_iso;
+    } else if (overrideVal !== 'auto') {
+        d_used = parseFloat(overrideVal) || d_iso;
+    }
+
     const G = 79000.0;
-    const theta_deg = d_iso > 0 ? (584.0 * T_nmm * L_mm) / (G * Math.pow(d_iso, 4)) : 0;
+    const theta_deg = d_used > 0 ? (584.0 * T_nmm * L_mm) / (G * Math.pow(d_used, 4)) : 0;
     const theta_per_m = theta_deg * (1000.0 / L_mm);
 
-    const I = (Math.PI * Math.pow(d_iso, 4)) / 64.0;
+    const I = (Math.PI * Math.pow(d_used, 4)) / 64.0;
 
     // 3D Vector Deflection & Critical Speed Calculation
     const beamType = inputs.vmBeamType ? inputs.vmBeamType.value : 'ss';
@@ -792,6 +824,8 @@ function calculate() {
     const span = Math.max(xb - xa, 1.0);
     let y_total_y = 0.0;
     let y_total_z = 0.0;
+    let sum_wy = 0.0;
+    let sum_wy2 = 0.0;
 
     vmLoadsList.forEach(l => {
         const w = Math.abs(l.w_n || 0);
@@ -810,6 +844,10 @@ function calculate() {
             } else {
                 y_total_y += deflect_i;
             }
+
+            const y_abs_i = Math.abs(deflect_i);
+            sum_wy += w * y_abs_i;
+            sum_wy2 += w * Math.pow(y_abs_i, 2);
         }
     });
 
@@ -817,24 +855,28 @@ function calculate() {
 
     let y_deflect = Y_total_3d;
     let nc_rpm = 99999.0;
+    const NC_FACTOR = (30.0 / Math.PI) * Math.sqrt(9810.0); // 945.7335 (g = 9810 mm/s^2)
 
-    if (y_deflect > 0) {
-        nc_rpm = 945.0 / Math.sqrt(y_deflect);
+    if (sum_wy2 > 0) {
+        nc_rpm = NC_FACTOR * Math.sqrt(sum_wy / sum_wy2);
+        if (y_deflect === 0) y_deflect = sum_wy2 / sum_wy;
+    } else if (y_deflect > 0) {
+        nc_rpm = NC_FACTOR / Math.sqrt(y_deflect);
     } else {
         const W_dummy = 10.0;
         y_deflect = (W_dummy * Math.pow(L_mm, 3)) / (48.0 * E * I);
-        nc_rpm = y_deflect > 0 ? 945.0 * Math.sqrt(1.0 / y_deflect) : 99999;
+        nc_rpm = y_deflect > 0 ? NC_FACTOR * Math.sqrt(1.0 / y_deflect) : 99999;
     }
 
     const se_prime = Sut <= 1400 ? 0.5 * Sut : 700.0;
     const ka = 4.51 * Math.pow(Sut, -0.265);
-    const kb = d_iso <= 51 ? 1.24 * Math.pow(d_iso, -0.107) : 1.51 * Math.pow(d_iso, -0.157);
+    const kb = d_used <= 51 ? 1.24 * Math.pow(d_used, -0.107) : 1.51 * Math.pow(d_used, -0.157);
     const se = ka * kb * se_prime;
 
     const q = 0.8;
     const kf = 1.0 + q * (Kt - 1.0);
-    const sigma_a_prime = kf * (32.0 * M_nmm) / (Math.PI * Math.pow(d_iso, 3));
-    const tau_m = (16.0 * T_nmm) / (Math.PI * Math.pow(d_iso, 3));
+    const sigma_a_prime = kf * (32.0 * M_nmm) / (Math.PI * Math.pow(d_used, 3));
+    const tau_m = (16.0 * T_nmm) / (Math.PI * Math.pow(d_used, 3));
     const sigma_m_prime = Math.sqrt(3.0) * tau_m;
 
     const inv_goodman = (sigma_a_prime / se) + (sigma_m_prime / Sut);
@@ -843,11 +885,34 @@ function calculate() {
     const n_yield = sigma_max_vm > 0 ? Sy / sigma_max_vm : 99.0;
 
     outputs.resIsoDia.innerText = `${d_iso} mm`;
+    if (outputs.resSelectedDia) outputs.resSelectedDia.innerText = `${d_used} mm`;
+    if (outputs.resSelectedStatus) {
+        if (d_used < d_calc) {
+            outputs.resSelectedStatus.innerHTML = `<span class="status-badge warn"><i class="fa-solid fa-triangle-exclamation"></i> Below Min (${formatDec(d_calc)} mm)</span>`;
+        } else if (d_used === d_iso) {
+            outputs.resSelectedStatus.innerHTML = `<span class="status-badge pass"><i class="fa-solid fa-check"></i> Recommended ISO</span>`;
+        } else {
+            outputs.resSelectedStatus.innerHTML = `<span class="status-badge pass"><i class="fa-solid fa-check"></i> Custom Selected</span>`;
+        }
+    }
     outputs.resCalcDia.innerText = `${formatDec(d_calc)} mm`;
     outputs.resTorque.innerText = `${formatDec(T_nm)} N-m`;
     outputs.resTorqueNmm.innerText = `${formatDecComma(T_nmm)} N-mm`;
     outputs.resTwistDeg.innerText = `${formatDec(theta_deg)}°`;
     outputs.resTwistPerM.innerText = `${formatDec(theta_per_m)} deg/m`;
+
+    if (outputs.resDeflection) {
+        const y_xy_val = Math.abs(y_total_y);
+        const y_zy_val = Math.abs(y_total_z);
+        outputs.resDeflection.innerHTML = `${formatDec(y_deflect)} mm <div style="font-size: 11px; color: #475569; font-weight: normal; margin-top: 2px;">(Y<sub>xy</sub> = ${formatDec(y_xy_val)} mm, Y<sub>zy</sub> = ${formatDec(y_zy_val)} mm)</div>`;
+        const maxAllowableY = 0.001 * L_mm;
+        if (y_deflect <= maxAllowableY) {
+            outputs.resDeflectionCheck.innerHTML = `<span class="status-badge pass"><i class="fa-solid fa-check"></i> Safe (&le; ${formatDec(maxAllowableY)} mm)</span>`;
+        } else {
+            outputs.resDeflectionCheck.innerHTML = `<span class="status-badge warn"><i class="fa-solid fa-triangle-exclamation"></i> High Deflect (&gt; ${formatDec(maxAllowableY)} mm)</span>`;
+        }
+    }
+
     outputs.resCriticalSpeed.innerText = `${formatDecComma(nc_rpm)} RPM`;
 
     const isSafeOperating = N < 0.75 * nc_rpm || N > 1.25 * nc_rpm;

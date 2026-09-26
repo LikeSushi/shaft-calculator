@@ -200,5 +200,23 @@ class TestFRA232ComprehensiveSuite(unittest.TestCase):
         self.assertAlmostEqual(res_nc["y_xz_total_mm"], 0.6529, places=2)
         self.assertAlmostEqual(res_nc["nc_rpm"], 1142.27, delta=10.0)
 
+    def test_20_custom_selected_shaft_diameter(self):
+        """
+        [Test Case 20] ทดสอบการเลือกขนาดเส้นผ่านศูนย์กลางเพลาเอง (Custom Selected Diameter)
+        เทียบผลลัพธ์ที่ d = 8 mm vs d = 10 mm และ d = 12 mm
+        """
+        shaft = AdvancedMechanicalShaft(e_mpa=205000.0, sut_mpa=400.0, sy_mpa=250.0)
+        loads_n = [100.0]
+        dist_mm = [50.0]
+        L_mm = 100.0
+
+        res_8mm = shaft.calculate_critical_speed(loads_n=loads_n, distances_mm=dist_mm, total_length_mm=L_mm, d_mm=8.0)
+        res_10mm = shaft.calculate_critical_speed(loads_n=loads_n, distances_mm=dist_mm, total_length_mm=L_mm, d_mm=10.0)
+        res_12mm = shaft.calculate_critical_speed(loads_n=loads_n, distances_mm=dist_mm, total_length_mm=L_mm, d_mm=12.0)
+
+        # Higher diameter -> higher I -> lower deflection -> higher critical speed Nc
+        self.assertGreater(res_10mm["nc_rpm"], res_8mm["nc_rpm"])
+        self.assertGreater(res_12mm["nc_rpm"], res_10mm["nc_rpm"])
+
 if __name__ == "__main__":
     unittest.main()
