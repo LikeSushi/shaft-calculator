@@ -300,15 +300,21 @@ function renderVmLoadsTable() {
     vmLoadsTbody.innerHTML = '';
     vmLoadsList.forEach((load, idx) => {
         const tr = document.createElement('tr');
-        const dirVal = load.dir || 'down_y';
+        const planeVal = load.plane || 'xy';
+        const dirVal = load.dir || 'downward';
+        const isUp = dirVal === 'upward' || dirVal === 'up_y' || dirVal === 'right_z';
         tr.innerHTML = `
             <td>#${idx + 1}</td>
             <td>
+                <select class="load-plane-select" data-idx="${idx}">
+                    <option value="xy" ${planeVal === 'xy' ? 'selected' : ''}>ระนาบตั้ง (XY - Fy)</option>
+                    <option value="xz" ${planeVal === 'xz' ? 'selected' : ''}>ระนาบนอน (XZ - Fz)</option>
+                </select>
+            </td>
+            <td>
                 <select class="load-dir-select" data-idx="${idx}">
-                    <option value="up_y" ${dirVal === 'up_y' || (dirVal === 'upward' && load.plane === 'xy') ? 'selected' : ''}>+Y ชี้ขึ้น (↑ Vertical)</option>
-                    <option value="down_y" ${dirVal === 'down_y' || (dirVal === 'downward' && load.plane === 'xy') ? 'selected' : ''}>-Y ชี้ลง (↓ Vertical)</option>
-                    <option value="right_z" ${dirVal === 'right_z' || (dirVal === 'upward' && load.plane === 'xz') ? 'selected' : ''}>+Z ชี้ขวา (→ Horizontal)</option>
-                    <option value="left_z" ${dirVal === 'left_z' || (dirVal === 'downward' && load.plane === 'xz') ? 'selected' : ''}>-Z ชี้ซ้าย (← Horizontal)</option>
+                    <option value="downward" ${!isUp ? 'selected' : ''}>ชี้ลง (↓)</option>
+                    <option value="upward" ${isUp ? 'selected' : ''}>ชี้ขึ้น (↑)</option>
                 </select>
             </td>
             <td>
@@ -330,16 +336,18 @@ function renderVmLoadsTable() {
         vmLoadsTbody.appendChild(tr);
     });
 
+    document.querySelectorAll('.load-plane-select').forEach(select => {
+        select.addEventListener('change', (e) => {
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            vmLoadsList[idx].plane = e.target.value;
+            calculate();
+        });
+    });
+
     document.querySelectorAll('.load-dir-select').forEach(select => {
         select.addEventListener('change', (e) => {
             const idx = parseInt(e.target.getAttribute('data-idx'));
-            const val = e.target.value;
-            vmLoadsList[idx].dir = val;
-            if (val === 'up_y' || val === 'down_y') {
-                vmLoadsList[idx].plane = 'xy';
-            } else {
-                vmLoadsList[idx].plane = 'xz';
-            }
+            vmLoadsList[idx].dir = e.target.value;
             calculate();
         });
     });
@@ -372,7 +380,7 @@ function renderVmLoadsTable() {
 
 btnAddLoadRow.addEventListener('click', () => {
     const L_mm = parseFloat(inputs.shaftLength.value) || 100;
-    vmLoadsList.push({ w_n: 200, dir: 'down_y', plane: 'xy', x_mm: Math.round(L_mm / 2) });
+    vmLoadsList.push({ w_n: 200, dir: 'downward', plane: 'xy', x_mm: Math.round(L_mm / 2) });
     renderVmLoadsTable();
     calculate();
 });
